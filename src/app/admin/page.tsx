@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAllSpeakers, getAllCompanies } from "@/lib/actions/library";
 import { getAllTalkSessions } from "@/lib/actions/talks";
 import { getAllInternshipSessions } from "@/lib/actions/internships";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function AdminDashboard() {
   const [speakerList, companyList, talkList, internList] = await Promise.all([
@@ -73,7 +74,7 @@ export default async function AdminDashboard() {
                       >
                         {s.title}
                       </Link>
-                      <span className="text-gray-500"> · Class {s.targetClass}</span>
+                      <span className="text-gray-500"> · {formatTargetClass(s.targetClass)}</span>
                     </span>
                     <span className="text-gray-600">
                       {Number(s.registrationCount)} regs
@@ -106,7 +107,7 @@ export default async function AdminDashboard() {
                     >
                       {intern.title}
                     </Link>
-                    <span className="text-gray-500"> · Class {intern.targetClass}</span>
+                    <span className="text-gray-500"> · {formatTargetClass(intern.targetClass)}</span>
                     <p className="text-gray-500 mt-1">
                       {Number(intern.companyCount)} companies ·{" "}
                       {Number(intern.registrationCount)} registrations

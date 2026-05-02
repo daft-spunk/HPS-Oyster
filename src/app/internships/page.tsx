@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   getActiveInternshipSession,
   getActiveInternshipSessionByClass,
@@ -7,6 +6,8 @@ import {
 } from "@/lib/actions/internships";
 import { InternshipRegistrationForm } from "./InternshipRegistrationForm";
 import { InternshipDetails } from "./InternshipDetails";
+import { PublicNavbar } from "@/components/PublicNavbar";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function InternshipsPage({
   searchParams,
@@ -22,11 +23,11 @@ export default async function InternshipsPage({
   if (!activeSession) {
     return (
       <div className="min-h-screen">
-        <Navbar />
+        <PublicNavbar />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-3xl font-bold mb-4">Internships</h1>
+          <h1 className="text-3xl font-bold mb-4">1-Day Internships</h1>
           <p className="text-gray-600">
-            No active internship program right now. Check back soon!
+            No active 1-Day Internship program right now. Check back soon!
           </p>
           <Link href="/" className="text-primary hover:underline mt-4 inline-block">
             &larr; Back to Home
@@ -45,11 +46,11 @@ export default async function InternshipsPage({
 
   return (
     <div className="min-h-screen">
-      <Navbar />
+      <PublicNavbar />
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-2">
-            Class {session.targetClass} — {session.title}
+            {formatTargetClass(session.targetClass)} — {session.title}
           </h1>
           <p className="text-gray-500 mb-1">{session.editionLabel}</p>
           {session.regDeadline && (
@@ -176,17 +177,3 @@ export default async function InternshipsPage({
   );
 }
 
-function Navbar() {
-  return (
-    <nav className="bg-[#1a3a5c] text-white">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/">
-          <Image src="/assets/logo.png" alt="HPS Oyster" width={200} height={56} />
-        </Link>
-        <Link href="/" className="text-sm hover:text-amber-300 transition">
-          Home
-        </Link>
-      </div>
-    </nav>
-  );
-}

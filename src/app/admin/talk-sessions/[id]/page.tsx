@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { LinkSpeakerForm } from "./LinkSpeakerForm";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function TalkSessionDetail({
   params,
@@ -26,7 +27,7 @@ export default async function TalkSessionDetail({
     <div>
       <PageHeader
         title={session.title}
-        subtitle={`Class ${session.targetClass} · ${session.editionLabel}${session.sessionDate ? ` · ${session.sessionDate}` : ""}`}
+        subtitle={`${formatTargetClass(session.targetClass)} · ${session.editionLabel}${session.sessionDate ? ` · ${session.sessionDate}` : ""}`}
         backHref="/admin/talk-sessions"
         backLabel="Back to Talk Sessions"
         action={

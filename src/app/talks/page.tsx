@@ -3,6 +3,8 @@ import Image from "next/image";
 import { getActiveTalkSessions, getSessionWithSpeakers } from "@/lib/actions/talks";
 import { TalkRegistrationForm } from "./TalkRegistrationForm";
 import { SpeakerBio } from "./SpeakerBio";
+import { PublicNavbar } from "@/components/PublicNavbar";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function TalksPage() {
   const activeSessions = await getActiveTalkSessions();
@@ -10,7 +12,7 @@ export default async function TalksPage() {
   if (activeSessions.length === 0) {
     return (
       <div className="min-h-screen">
-        <Navbar />
+        <PublicNavbar />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
           <h1 className="text-3xl font-bold mb-4">Role Model Talks</h1>
           <p className="text-gray-600">
@@ -30,7 +32,7 @@ export default async function TalksPage() {
 
   return (
     <div className="min-h-screen">
-      <Navbar />
+      <PublicNavbar />
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-2">Role Model Talks</h1>
@@ -50,7 +52,7 @@ export default async function TalksPage() {
             <div key={session.id} className="mb-16">
               <div className="text-center mb-6">
                 <h2 className="text-3xl font-bold mb-2">
-                  Class {session.targetClass} &mdash; {session.title}
+                  {formatTargetClass(session.targetClass)} &mdash; {session.title}
                 </h2>
                 {session.editionLabel && (
                   <p className="text-gray-500 mb-1">{session.editionLabel}</p>
@@ -224,17 +226,3 @@ export default async function TalksPage() {
   );
 }
 
-function Navbar() {
-  return (
-    <nav className="bg-[#1a3a5c] text-white">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/">
-          <Image src="/assets/logo.png" alt="HPS Oyster" width={200} height={56} />
-        </Link>
-        <Link href="/" className="text-sm hover:text-amber-300 transition">
-          Home
-        </Link>
-      </div>
-    </nav>
-  );
-}

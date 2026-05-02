@@ -16,7 +16,7 @@ export function InternshipDetails({
   const [expanded, setExpanded] = useState(false);
 
   const sections = [
-    { label: "About this internship", body: aboutInternship },
+    { label: "About this 1-Day Internship", body: aboutInternship },
     { label: "Who is it for?", body: whoFor },
     { label: "What to expect", body: whatToExpect },
     { label: "What to bring", body: whatToBring },

@@ -6,6 +6,7 @@ import {
   deleteInternshipSession,
 } from "@/lib/actions/internships";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function InternshipSessionsPage() {
   const sessions = await getAllInternshipSessions();
@@ -61,7 +62,7 @@ export default async function InternshipSessionsPage() {
                       {s.title}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">Class {s.targetClass}</td>
+                  <td className="px-4 py-3">{formatTargetClass(s.targetClass)}</td>
                   <td className="px-4 py-3 text-gray-500">{s.editionLabel}</td>
                   <td className="px-4 py-3 text-gray-500">
                     {s.regDeadline ? new Date(s.regDeadline).toLocaleDateString() : "—"}

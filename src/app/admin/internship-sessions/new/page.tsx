@@ -39,6 +39,7 @@ export default function NewInternshipSessionPage() {
           >
             <option value="9">Class 9</option>
             <option value="10">Class 10</option>
+            <option value="9_10">Class 9 &amp; 10</option>
           </select>
         </div>
         <div>

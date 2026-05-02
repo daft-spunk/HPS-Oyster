@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getActiveTalkSessions } from "@/lib/actions/talks";
 import { getActiveInternshipSessions } from "@/lib/actions/internships";
+import { formatTargetClass } from "@/lib/format";
+import { PublicNavbar } from "@/components/PublicNavbar";
 
 const CAREER_FIELDS = [
   { icon: "/assets/icons/Bag.png", title: "Startups:", desc: "Immerse yourself in the world of innovation and entrepreneurship." },
@@ -39,21 +41,7 @@ export default async function HomePage() {
 
   return (
     <div className="bg-white text-gray-900">
-      {/* Light top navbar — matches original */}
-      <nav className="bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 py-3">
-          <Link href="/" className="inline-block">
-            <Image
-              src="/assets/logo.png"
-              alt="HPS World is My Oyster"
-              width={240}
-              height={64}
-              priority
-              style={{ width: "auto", height: "64px" }}
-            />
-          </Link>
-        </div>
-      </nav>
+      <PublicNavbar />
 
       {/* HERO — full viewport, dark overlay, school bg, white heading + gold button */}
       <section className="relative h-[70vh] min-h-[450px] flex flex-col items-center justify-center text-center text-white overflow-hidden">
@@ -78,18 +66,24 @@ export default async function HomePage() {
                 href="/talks"
                 className="inline-block px-5 py-2.5 bg-[#BD974A] hover:bg-[#a4843d] text-white rounded-lg font-medium transition"
               >
-                Register for Class {s.targetClass} Role Model Talks
+                Register for {formatTargetClass(s.targetClass)} Role Model Talks
               </Link>
             ))}
-            {activeInternships.map((s) => (
-              <Link
-                key={s.id}
-                href={`/internships?class=${s.targetClass}`}
-                className="inline-block px-5 py-2.5 bg-[#BD974A] hover:bg-[#a4843d] text-white rounded-lg font-medium transition"
-              >
-                Register for Class {s.targetClass} Internships
-              </Link>
-            ))}
+            {activeInternships.map((s) => {
+              const href =
+                s.targetClass === "9_10"
+                  ? "/internships"
+                  : `/internships?class=${s.targetClass}`;
+              return (
+                <Link
+                  key={s.id}
+                  href={href}
+                  className="inline-block px-5 py-2.5 bg-[#BD974A] hover:bg-[#a4843d] text-white rounded-lg font-medium transition"
+                >
+                  Register for {formatTargetClass(s.targetClass)} 1-Day Internships
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

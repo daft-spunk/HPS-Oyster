@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { LinkCompanyForm } from "./LinkCompanyForm";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function InternshipSessionDetail({
   params,
@@ -26,7 +27,7 @@ export default async function InternshipSessionDetail({
     <div>
       <PageHeader
         title={session.title}
-        subtitle={`Class ${session.targetClass} · ${session.editionLabel}${session.regDeadline ? ` · Deadline ${new Date(session.regDeadline).toLocaleDateString()}` : ""}`}
+        subtitle={`${formatTargetClass(session.targetClass)} · ${session.editionLabel}${session.regDeadline ? ` · Deadline ${new Date(session.regDeadline).toLocaleDateString()}` : ""}`}
         backHref="/admin/internship-sessions"
         backLabel="Back to Internship Sessions"
         action={

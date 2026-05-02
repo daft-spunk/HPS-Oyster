@@ -48,7 +48,7 @@ export async function getActiveInternshipSessionByClass(targetClass: "9" | "10")
       .select()
       .from(internshipSessions)
       .where(
-        sql`${internshipSessions.isActive} = true AND ${internshipSessions.targetClass} = ${targetClass}`
+        sql`${internshipSessions.isActive} = true AND ${internshipSessions.targetClass} IN (${targetClass}, '9_10')`
       );
     return session || null;
   } catch {

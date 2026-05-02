@@ -10,7 +10,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
-export const targetClassEnum = pgEnum("target_class", ["9", "10"]);
+export const targetClassEnum = pgEnum("target_class", ["9", "10", "9_10"]);
 
 // ─────────────────────────────────────────────────────────
 // LIBRARY: Global pools (reusable entities)

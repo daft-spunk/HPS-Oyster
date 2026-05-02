@@ -6,6 +6,7 @@ import {
   deleteTalkSession,
 } from "@/lib/actions/talks";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { formatTargetClass } from "@/lib/format";
 
 export default async function TalkSessionsPage() {
   const sessions = await getAllTalkSessions();
@@ -61,7 +62,7 @@ export default async function TalkSessionsPage() {
                     </Link>
                     <div className="text-xs text-gray-400">{s.editionLabel}</div>
                   </td>
-                  <td className="px-4 py-3">Class {s.targetClass}</td>
+                  <td className="px-4 py-3">{formatTargetClass(s.targetClass)}</td>
                   <td className="px-4 py-3 text-gray-500">{s.sessionDate || "TBD"}</td>
                   <td className="px-4 py-3">{Number(s.speakerCount)}</td>
                   <td className="px-4 py-3">{Number(s.registrationCount)}</td>

@@ -29,7 +29,7 @@ export const companySchema = z.object({
 export const talkSessionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   editionLabel: z.string().min(1, "Edition label is required"),
-  targetClass: z.enum(["9", "10"]),
+  targetClass: z.enum(["9", "10", "9_10"]),
   description: z.string().optional(),
   sessionDate: z.string().optional(),
   timeSlot: z.string().optional(),
@@ -39,7 +39,7 @@ export const talkSessionSchema = z.object({
 export const internshipSessionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   editionLabel: z.string().min(1, "Edition label is required"),
-  targetClass: z.enum(["9", "10"]),
+  targetClass: z.enum(["9", "10", "9_10"]),
   maxPreferences: z.coerce.number().int().min(1).max(3).default(3),
   description: z.string().optional(),
   regDeadline: z.string().optional(),
