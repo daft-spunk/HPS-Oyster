@@ -41,6 +41,23 @@ export default function NewInternshipSessionPage() {
             <option value="10">Class 10</option>
           </select>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Number of Preferences
+          </label>
+          <select
+            name="maxPreferences"
+            defaultValue="3"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          >
+            <option value="1">1 — Pick one company</option>
+            <option value="2">Up to 2 preferences</option>
+            <option value="3">Up to 3 preferences</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            How many preferences a student can pick. The first is required; extras are optional.
+          </p>
+        </div>
         <Field
           label="Session Description"
           name="description"

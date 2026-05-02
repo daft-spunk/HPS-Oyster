@@ -40,6 +40,7 @@ export const internshipSessionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   editionLabel: z.string().min(1, "Edition label is required"),
   targetClass: z.enum(["9", "10"]),
+  maxPreferences: z.coerce.number().int().min(1).max(3).default(3),
   description: z.string().optional(),
   regDeadline: z.string().optional(),
 });
@@ -100,6 +101,22 @@ export const talkRegistrationSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
+const optionalUuid = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.length > 0 ? v : undefined))
+  .refine((v) => v === undefined || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v), {
+    message: "Invalid company selection",
+  });
+
+const optionalReason = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.length > 0 ? v : undefined))
+  .refine((v) => v === undefined || v.length >= 10, {
+    message: "Please write at least 10 characters",
+  });
+
 export const internshipRegistrationSchema = z
   .object({
     studentName: z.string().min(1, "Name is required"),
@@ -110,12 +127,12 @@ export const internshipRegistrationSchema = z
     parentPhone: z.string().min(10, "Invalid phone number"),
     interests: z.string().optional(),
     sessionId: z.string().uuid(),
-    pref1SessionCompanyId: z.string().uuid("Please select company 1"),
+    pref1SessionCompanyId: z.string().uuid("Please select your first preference"),
     pref1Reason: z.string().min(10, "Please write at least 10 characters"),
-    pref2SessionCompanyId: z.string().uuid("Please select company 2"),
-    pref2Reason: z.string().min(10, "Please write at least 10 characters"),
-    pref3SessionCompanyId: z.string().uuid("Please select company 3"),
-    pref3Reason: z.string().min(10, "Please write at least 10 characters"),
+    pref2SessionCompanyId: optionalUuid,
+    pref2Reason: optionalReason,
+    pref3SessionCompanyId: optionalUuid,
+    pref3Reason: optionalReason,
   })
   .refine(
     (data) => {
@@ -123,8 +140,15 @@ export const internshipRegistrationSchema = z
         data.pref1SessionCompanyId,
         data.pref2SessionCompanyId,
         data.pref3SessionCompanyId,
-      ];
-      return new Set(prefs).size === 3;
+      ].filter(Boolean) as string[];
+      return new Set(prefs).size === prefs.length;
     },
-    { message: "Please select 3 different companies", path: ["pref3SessionCompanyId"] }
+    { message: "Each preference must be a different company", path: ["pref3SessionCompanyId"] }
+  )
+  .refine(
+    (data) =>
+      // If a company is picked, a reason must be provided (and vice versa)
+      (!data.pref2SessionCompanyId || !!data.pref2Reason) &&
+      (!data.pref3SessionCompanyId || !!data.pref3Reason),
+    { message: "Please add a reason for each preference you pick" }
   );

@@ -13,9 +13,11 @@ interface Company {
 export function InternshipRegistrationForm({
   sessionId,
   companies,
+  maxPreferences = 3,
 }: {
   sessionId: string;
   companies: Company[];
+  maxPreferences?: number;
 }) {
   const [state, formAction, pending] = useActionState(registerForInternship, null);
   const [pref1, setPref1] = useState("");
@@ -96,16 +98,20 @@ export function InternshipRegistrationForm({
 
       <hr className="my-6" />
       <h4 className="font-bold text-gray-800">
-        Select Your Top 3 Preferences
+        {maxPreferences === 1
+          ? "Select Your Preferred Company"
+          : `Select Your Top ${maxPreferences} Preferences`}
       </h4>
       <p className="text-xs text-gray-500 mb-4">
-        Each reason must be at least 10 characters explaining why you are interested.
+        {maxPreferences === 1
+          ? "Tell us why you're interested. At least 10 characters."
+          : "Your first preference is required. Add more if you'd like — each reason must be at least 10 characters."}
       </p>
 
-      {/* Preference 1 */}
+      {/* Preference 1 (always required) */}
       <div className="bg-gray-50 rounded-lg p-4">
         <label className="block text-sm font-bold text-gray-700 mb-2">
-          Preference 1 *
+          {maxPreferences === 1 ? "Company *" : "Preference 1 *"}
         </label>
         <select
           name="pref1SessionCompanyId"
@@ -131,63 +137,69 @@ export function InternshipRegistrationForm({
         />
       </div>
 
-      {/* Preference 2 */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          Preference 2 *
-        </label>
-        <select
-          name="pref2SessionCompanyId"
-          required
-          value={pref2}
-          onChange={(e) => setPref2(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-        >
-          <option value="">Select company...</option>
-          {getAvailableCompanies([pref1, pref3]).map((c) => (
-            <option key={c.sessionCompanyId} value={c.sessionCompanyId}>
-              {c.name} ({c.sector})
-            </option>
-          ))}
-        </select>
-        <ValidatedTextarea
-          name="pref2Reason"
-          required
-          rows={2}
-          minLength={10}
-          placeholder="Why are you interested in this company?"
-          errorMessage="Please write at least 10 characters"
-        />
-      </div>
+      {/* Preference 2 (optional, only if maxPreferences >= 2) */}
+      {maxPreferences >= 2 && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            Preference 2 <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <select
+            name="pref2SessionCompanyId"
+            value={pref2}
+            onChange={(e) => setPref2(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
+          >
+            <option value="">Select company (optional)...</option>
+            {getAvailableCompanies([pref1, pref3]).map((c) => (
+              <option key={c.sessionCompanyId} value={c.sessionCompanyId}>
+                {c.name} ({c.sector})
+              </option>
+            ))}
+          </select>
+          {pref2 && (
+            <ValidatedTextarea
+              name="pref2Reason"
+              required
+              rows={2}
+              minLength={10}
+              placeholder="Why are you interested in this company?"
+              errorMessage="Please write at least 10 characters"
+            />
+          )}
+        </div>
+      )}
 
-      {/* Preference 3 */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          Preference 3 *
-        </label>
-        <select
-          name="pref3SessionCompanyId"
-          required
-          value={pref3}
-          onChange={(e) => setPref3(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-        >
-          <option value="">Select company...</option>
-          {getAvailableCompanies([pref1, pref2]).map((c) => (
-            <option key={c.sessionCompanyId} value={c.sessionCompanyId}>
-              {c.name} ({c.sector})
-            </option>
-          ))}
-        </select>
-        <ValidatedTextarea
-          name="pref3Reason"
-          required
-          rows={2}
-          minLength={10}
-          placeholder="Why are you interested in this company?"
-          errorMessage="Please write at least 10 characters"
-        />
-      </div>
+      {/* Preference 3 (optional, only if maxPreferences >= 3) */}
+      {maxPreferences >= 3 && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            Preference 3 <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <select
+            name="pref3SessionCompanyId"
+            value={pref3}
+            onChange={(e) => setPref3(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
+          >
+            <option value="">Select company (optional)...</option>
+            {getAvailableCompanies([pref1, pref2]).map((c) => (
+              <option key={c.sessionCompanyId} value={c.sessionCompanyId}>
+                {c.name} ({c.sector})
+              </option>
+            ))}
+          </select>
+          {pref3 && (
+            <ValidatedTextarea
+              name="pref3Reason"
+              required
+              rows={2}
+              minLength={10}
+              placeholder="Why are you interested in this company?"
+              errorMessage="Please write at least 10 characters"
+            />
+          )}
+        </div>
+      )}
 
       {state?.error && (
         <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{state.error}</p>

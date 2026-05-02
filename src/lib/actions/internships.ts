@@ -108,20 +108,27 @@ export async function registerForInternship(
     return { error: "Registration deadline has passed" };
   }
 
-  // Verify all 3 session-company IDs belong to this session
-  const ids = [
+  // Verify each provided session-company ID belongs to this session
+  const providedIds = [
     data.pref1SessionCompanyId,
     data.pref2SessionCompanyId,
     data.pref3SessionCompanyId,
-  ];
+  ].filter((v): v is string => Boolean(v));
   const valid = await db
     .select({ id: sessionCompanies.id })
     .from(sessionCompanies)
     .where(eq(sessionCompanies.sessionId, data.sessionId));
   const validSet = new Set(valid.map((v) => v.id));
-  for (const id of ids) {
+  for (const id of providedIds) {
     if (!validSet.has(id)) return { error: "Invalid company selection" };
   }
+
+  // Enforce per-session max-preferences cap (extra prefs above the limit are dropped)
+  const max = session.maxPreferences ?? 3;
+  const pref2Id = max >= 2 ? data.pref2SessionCompanyId ?? null : null;
+  const pref2Reason = max >= 2 ? data.pref2Reason ?? null : null;
+  const pref3Id = max >= 3 ? data.pref3SessionCompanyId ?? null : null;
+  const pref3Reason = max >= 3 ? data.pref3Reason ?? null : null;
 
   try {
     await db.insert(internshipRegistrations).values({
@@ -135,10 +142,10 @@ export async function registerForInternship(
       interests: data.interests || null,
       pref1SessionCompanyId: data.pref1SessionCompanyId,
       pref1Reason: data.pref1Reason,
-      pref2SessionCompanyId: data.pref2SessionCompanyId,
-      pref2Reason: data.pref2Reason,
-      pref3SessionCompanyId: data.pref3SessionCompanyId,
-      pref3Reason: data.pref3Reason,
+      pref2SessionCompanyId: pref2Id,
+      pref2Reason: pref2Reason,
+      pref3SessionCompanyId: pref3Id,
+      pref3Reason: pref3Reason,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? `${e.message} ${(e as { cause?: Error }).cause?.message ?? ""}` : "";
@@ -166,6 +173,7 @@ export async function getAllInternshipSessions() {
       title: internshipSessions.title,
       editionLabel: internshipSessions.editionLabel,
       targetClass: internshipSessions.targetClass,
+      maxPreferences: internshipSessions.maxPreferences,
       description: internshipSessions.description,
       isActive: internshipSessions.isActive,
       regOpen: internshipSessions.regOpen,
@@ -192,6 +200,7 @@ export async function createInternshipSession(
       title: parsed.data.title,
       editionLabel: parsed.data.editionLabel,
       targetClass: parsed.data.targetClass,
+      maxPreferences: parsed.data.maxPreferences,
       description: parsed.data.description || null,
       regDeadline: parsed.data.regDeadline ? new Date(parsed.data.regDeadline) : null,
     })
@@ -216,6 +225,7 @@ export async function updateInternshipSession(
       title: parsed.data.title,
       editionLabel: parsed.data.editionLabel,
       targetClass: parsed.data.targetClass,
+      maxPreferences: parsed.data.maxPreferences,
       description: parsed.data.description || null,
       regDeadline: parsed.data.regDeadline ? new Date(parsed.data.regDeadline) : null,
       updatedAt: new Date(),

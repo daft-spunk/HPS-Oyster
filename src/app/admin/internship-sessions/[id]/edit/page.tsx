@@ -33,6 +33,7 @@ export default async function EditInternshipSessionPage({
           title: session.title,
           editionLabel: session.editionLabel,
           targetClass: session.targetClass,
+          maxPreferences: session.maxPreferences,
           description: session.description,
           regDeadline: session.regDeadline ? session.regDeadline.toISOString().slice(0, 16) : null,
         }}

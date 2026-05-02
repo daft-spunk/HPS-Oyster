@@ -60,9 +60,9 @@ export default async function InternshipRegistrationsPage({
                   <td className="px-4 py-3">{r.studentName}</td>
                   <td className="px-4 py-3">{r.classSection}</td>
                   <td className="px-4 py-3">{r.rollNumber}</td>
-                  <td className="px-4 py-3">{r.pref1Company}</td>
-                  <td className="px-4 py-3">{r.pref2Company}</td>
-                  <td className="px-4 py-3">{r.pref3Company}</td>
+                  <td className="px-4 py-3">{r.pref1Company || "—"}</td>
+                  <td className="px-4 py-3">{r.pref2Company || "—"}</td>
+                  <td className="px-4 py-3">{r.pref3Company || "—"}</td>
                   <td className="px-4 py-3">{r.parentEmail}</td>
                   <td className="px-4 py-3">{r.parentPhone}</td>
                   <td className="px-4 py-3 text-right">

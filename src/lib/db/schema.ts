@@ -115,6 +115,7 @@ export const internshipSessions = pgTable("internship_sessions", {
   title: text("title").notNull(),
   editionLabel: text("edition_label").notNull(),
   targetClass: targetClassEnum("target_class").notNull().default("10"),
+  maxPreferences: integer("max_preferences").notNull().default(3),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(false),
   regOpen: boolean("reg_open").notNull().default(true),
@@ -164,14 +165,14 @@ export const internshipRegistrations = pgTable(
       .notNull()
       .references(() => sessionCompanies.id),
     pref1Reason: text("pref_1_reason").notNull(),
-    pref2SessionCompanyId: uuid("pref_2_session_company_id")
-      .notNull()
-      .references(() => sessionCompanies.id),
-    pref2Reason: text("pref_2_reason").notNull(),
-    pref3SessionCompanyId: uuid("pref_3_session_company_id")
-      .notNull()
-      .references(() => sessionCompanies.id),
-    pref3Reason: text("pref_3_reason").notNull(),
+    pref2SessionCompanyId: uuid("pref_2_session_company_id").references(
+      () => sessionCompanies.id
+    ),
+    pref2Reason: text("pref_2_reason"),
+    pref3SessionCompanyId: uuid("pref_3_session_company_id").references(
+      () => sessionCompanies.id
+    ),
+    pref3Reason: text("pref_3_reason"),
     assignedSessionCompanyId: uuid("assigned_session_company_id").references(
       () => sessionCompanies.id
     ),

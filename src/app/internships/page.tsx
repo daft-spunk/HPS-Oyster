@@ -156,6 +156,7 @@ export default async function InternshipsPage({
             </p>
             <InternshipRegistrationForm
               sessionId={session.id}
+              maxPreferences={session.maxPreferences}
               companies={session.companies.map((c) => ({
                 sessionCompanyId: c.sessionCompanyId,
                 name: c.name,
