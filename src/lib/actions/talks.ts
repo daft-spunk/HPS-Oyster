@@ -52,6 +52,7 @@ export async function getSessionWithSpeakers(sessionId: string) {
       venue: sessionSpeakers.venue,
       slotLimit: sessionSpeakers.slotLimit,
       displayOrder: sessionSpeakers.displayOrder,
+      isActive: sessionSpeakers.isActive,
       registrationCount: sql<number>`(
         SELECT COUNT(*) FROM talk_registrations
         WHERE talk_registrations.session_speaker_id = ${sql.raw('"session_speakers"."id"')}
@@ -297,6 +298,21 @@ export async function updateSessionSpeaker(
   revalidatePath(`/admin/talk-sessions/${sessionId}`);
   revalidatePath("/talks");
   return { success: true };
+}
+
+export async function toggleSessionSpeakerActive(sessionSpeakerId: string, sessionId: string) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  const [row] = await db
+    .select({ isActive: sessionSpeakers.isActive })
+    .from(sessionSpeakers)
+    .where(eq(sessionSpeakers.id, sessionSpeakerId));
+  if (!row) throw new Error("Not found");
+  await db
+    .update(sessionSpeakers)
+    .set({ isActive: !row.isActive })
+    .where(eq(sessionSpeakers.id, sessionSpeakerId));
+  revalidatePath(`/admin/talk-sessions/${sessionId}`);
+  revalidatePath("/talks");
 }
 
 export async function deleteTalkRegistration(registrationId: string, sessionId: string) {

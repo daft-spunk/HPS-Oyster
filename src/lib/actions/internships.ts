@@ -78,6 +78,7 @@ export async function getInternshipSessionWithCompanies(sessionId: string) {
       whoFor: sessionCompanies.whoFor,
       whatToExpect: sessionCompanies.whatToExpect,
       whatToBring: sessionCompanies.whatToBring,
+      isActive: sessionCompanies.isActive,
     })
     .from(sessionCompanies)
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
@@ -339,6 +340,21 @@ export async function updateSessionCompany(
   revalidatePath(`/admin/internship-sessions/${sessionId}`);
   revalidatePath("/internships");
   return { success: true };
+}
+
+export async function toggleSessionCompanyActive(sessionCompanyId: string, sessionId: string) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  const [row] = await db
+    .select({ isActive: sessionCompanies.isActive })
+    .from(sessionCompanies)
+    .where(eq(sessionCompanies.id, sessionCompanyId));
+  if (!row) throw new Error("Not found");
+  await db
+    .update(sessionCompanies)
+    .set({ isActive: !row.isActive })
+    .where(eq(sessionCompanies.id, sessionCompanyId));
+  revalidatePath(`/admin/internship-sessions/${sessionId}`);
+  revalidatePath("/internships");
 }
 
 export async function deleteInternshipRegistration(registrationId: string, sessionId: string) {

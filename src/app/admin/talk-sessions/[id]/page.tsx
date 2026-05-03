@@ -1,4 +1,4 @@
-import { getSessionWithSpeakers, removeSpeakerFromSession } from "@/lib/actions/talks";
+import { getSessionWithSpeakers, removeSpeakerFromSession, toggleSessionSpeakerActive } from "@/lib/actions/talks";
 import { getAllSpeakers } from "@/lib/actions/library";
 import { isAuthenticated } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
@@ -60,11 +60,16 @@ export default async function TalkSessionDetail({
               </thead>
               <tbody className="divide-y">
                 {session.speakers.map((s) => (
-                  <tr key={s.sessionSpeakerId}>
+                  <tr key={s.sessionSpeakerId} className={s.isActive ? "" : "bg-gray-50"}>
                     <td className="px-4 py-3 font-medium">
-                      {s.name}
+                      <span className={s.isActive ? "" : "text-gray-400"}>{s.name}</span>
                       {s.batchYear && (
                         <span className="text-gray-400 text-xs"> · {s.batchYear}</span>
+                      )}
+                      {!s.isActive && (
+                        <span className="ml-2 px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-xs font-medium">
+                          Hidden
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{s.topic}</td>
@@ -75,6 +80,14 @@ export default async function TalkSessionDetail({
                     <td className="px-4 py-3 text-gray-500">{s.displayOrder}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-3 items-center">
+                        <form
+                          action={toggleSessionSpeakerActive.bind(null, s.sessionSpeakerId, id)}
+                          className="inline"
+                        >
+                          <button className="text-xs text-blue-600 hover:underline">
+                            {s.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                        </form>
                         <Link
                           href={`/admin/talk-sessions/${id}/speakers/${s.sessionSpeakerId}/edit`}
                           className="text-xs text-blue-600 hover:underline"

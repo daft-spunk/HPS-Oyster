@@ -26,8 +26,12 @@ export default async function TalksPage() {
     );
   }
 
-  const sessionsWithSpeakers = await Promise.all(
+  const sessionsWithSpeakersRaw = await Promise.all(
     activeSessions.map((s) => getSessionWithSpeakers(s.id))
+  );
+  // Hide inactive speakers from public registration
+  const sessionsWithSpeakers = sessionsWithSpeakersRaw.map((s) =>
+    s ? { ...s, speakers: s.speakers.filter((sp) => sp.isActive) } : s
   );
 
   return (

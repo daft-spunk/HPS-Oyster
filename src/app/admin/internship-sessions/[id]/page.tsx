@@ -1,4 +1,4 @@
-import { getInternshipSessionWithCompanies, removeCompanyFromSession } from "@/lib/actions/internships";
+import { getInternshipSessionWithCompanies, removeCompanyFromSession, toggleSessionCompanyActive } from "@/lib/actions/internships";
 import { getAllCompanies } from "@/lib/actions/library";
 import { isAuthenticated } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
@@ -67,14 +67,29 @@ export default async function InternshipSessionDetail({
               </thead>
               <tbody className="divide-y">
                 {session.companies.map((c) => (
-                  <tr key={c.sessionCompanyId}>
-                    <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <tr key={c.sessionCompanyId} className={c.isActive ? "" : "bg-gray-50"}>
+                    <td className="px-4 py-3 font-medium">
+                      <span className={c.isActive ? "" : "text-gray-400"}>{c.name}</span>
+                      {!c.isActive && (
+                        <span className="ml-2 px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-xs font-medium">
+                          Hidden
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-700">{c.sector}</td>
                     <td className="px-4 py-3 text-gray-500">{c.internshipDate || "TBD"}</td>
                     <td className="px-4 py-3">{c.slotsAvailable}</td>
                     <td className="px-4 py-3 text-gray-500">{c.displayOrder}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-3 items-center">
+                        <form
+                          action={toggleSessionCompanyActive.bind(null, c.sessionCompanyId, id)}
+                          className="inline"
+                        >
+                          <button className="text-xs text-blue-600 hover:underline">
+                            {c.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                        </form>
                         <Link
                           href={`/admin/internship-sessions/${id}/companies/${c.sessionCompanyId}/edit`}
                           className="text-xs text-blue-600 hover:underline"

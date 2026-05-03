@@ -79,6 +79,7 @@ export const sessionSpeakers = pgTable(
     venue: text("venue"),
     slotLimit: integer("slot_limit").notNull().default(30),
     displayOrder: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [unique("unique_speaker_per_session").on(table.sessionId, table.speakerId)]
@@ -142,6 +143,7 @@ export const sessionCompanies = pgTable(
     whoFor: text("who_for"),
     whatToExpect: text("what_to_expect"),
     whatToBring: text("what_to_bring"),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [unique("unique_company_per_session").on(table.sessionId, table.companyId)]

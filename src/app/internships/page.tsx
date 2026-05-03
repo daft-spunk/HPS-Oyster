@@ -37,8 +37,13 @@ export default async function InternshipsPage({
     );
   }
 
-  const session = await getInternshipSessionWithCompanies(activeSession.id);
-  if (!session) return null;
+  const fullSession = await getInternshipSessionWithCompanies(activeSession.id);
+  if (!fullSession) return null;
+  // Hide inactive companies from public registration
+  const session = {
+    ...fullSession,
+    companies: fullSession.companies.filter((c) => c.isActive),
+  };
 
   const isRegOpen =
     session.regOpen &&
