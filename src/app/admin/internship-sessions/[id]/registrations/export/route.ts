@@ -19,6 +19,7 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const headers = [
+    "Registered At",
     "Student Name",
     "Class/Section",
     "Roll Number",
@@ -32,11 +33,11 @@ export async function GET(
     "Reason 2",
     "Preference 3",
     "Reason 3",
-    "Registered At",
   ];
 
   const rows = registrations.map((r) =>
     [
+      r.createdAt ? new Date(r.createdAt).toISOString() : "",
       r.studentName,
       r.classSection,
       r.rollNumber,
@@ -50,7 +51,6 @@ export async function GET(
       r.pref2Reason,
       r.pref3Company,
       r.pref3Reason,
-      r.createdAt ? new Date(r.createdAt).toISOString() : "",
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(",")
