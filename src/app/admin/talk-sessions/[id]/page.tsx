@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { LinkSpeakerForm } from "./LinkSpeakerForm";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ConfirmFormButton } from "@/components/admin/ConfirmFormButton";
 import { formatTargetClass } from "@/lib/format";
 
 export default async function TalkSessionDetail({
@@ -84,9 +85,18 @@ export default async function TalkSessionDetail({
                           action={toggleSessionSpeakerActive.bind(null, s.sessionSpeakerId, id)}
                           className="inline"
                         >
-                          <button className="text-xs text-blue-600 hover:underline">
-                            {s.isActive ? "Deactivate" : "Activate"}
-                          </button>
+                          {s.isActive ? (
+                            <ConfirmFormButton
+                              message={`Deactivate ${s.name}? They will be hidden from public registration but their topic and details will be kept so you can reactivate later.`}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              Deactivate
+                            </ConfirmFormButton>
+                          ) : (
+                            <button className="text-xs text-blue-600 hover:underline">
+                              Activate
+                            </button>
+                          )}
                         </form>
                         <Link
                           href={`/admin/talk-sessions/${id}/speakers/${s.sessionSpeakerId}/edit`}
@@ -98,9 +108,12 @@ export default async function TalkSessionDetail({
                           action={removeSpeakerFromSession.bind(null, s.sessionSpeakerId, id)}
                           className="inline"
                         >
-                          <button className="text-xs text-red-600 hover:underline">
+                          <ConfirmFormButton
+                            message={`Remove ${s.name} from this session? Their topic, About-the-Topic, venue and slot settings will be lost. Use Deactivate instead if you only want to hide them temporarily.`}
+                            className="text-xs text-red-600 hover:underline"
+                          >
                             Remove
-                          </button>
+                          </ConfirmFormButton>
                         </form>
                       </div>
                     </td>

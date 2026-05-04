@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { LinkCompanyForm } from "./LinkCompanyForm";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ConfirmFormButton } from "@/components/admin/ConfirmFormButton";
 import { formatTargetClass } from "@/lib/format";
 
 export default async function InternshipSessionDetail({
@@ -86,9 +87,18 @@ export default async function InternshipSessionDetail({
                           action={toggleSessionCompanyActive.bind(null, c.sessionCompanyId, id)}
                           className="inline"
                         >
-                          <button className="text-xs text-blue-600 hover:underline">
-                            {c.isActive ? "Deactivate" : "Activate"}
-                          </button>
+                          {c.isActive ? (
+                            <ConfirmFormButton
+                              message={`Deactivate ${c.name}? It will be hidden from public registration but its details will be kept so you can reactivate later.`}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              Deactivate
+                            </ConfirmFormButton>
+                          ) : (
+                            <button className="text-xs text-blue-600 hover:underline">
+                              Activate
+                            </button>
+                          )}
                         </form>
                         <Link
                           href={`/admin/internship-sessions/${id}/companies/${c.sessionCompanyId}/edit`}
@@ -100,9 +110,12 @@ export default async function InternshipSessionDetail({
                           action={removeCompanyFromSession.bind(null, c.sessionCompanyId, id)}
                           className="inline"
                         >
-                          <button className="text-xs text-red-600 hover:underline">
+                          <ConfirmFormButton
+                            message={`Remove ${c.name} from this session? All details (about, who-for, what-to-expect, etc.) will be lost. Use Deactivate instead if you only want to hide it temporarily.`}
+                            className="text-xs text-red-600 hover:underline"
+                          >
                             Remove
-                          </button>
+                          </ConfirmFormButton>
                         </form>
                       </div>
                     </td>

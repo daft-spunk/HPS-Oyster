@@ -6,6 +6,7 @@ import {
   deleteInternshipSession,
 } from "@/lib/actions/internships";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ConfirmFormButton } from "@/components/admin/ConfirmFormButton";
 import { formatTargetClass } from "@/lib/format";
 
 export default async function InternshipSessionsPage() {
@@ -86,9 +87,18 @@ export default async function InternshipSessionsPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1 flex-wrap">
                       <form action={toggleInternshipActive.bind(null, s.id)} className="inline">
-                        <button className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
-                          {s.isActive ? "Deactivate" : "Activate"}
-                        </button>
+                        {s.isActive ? (
+                          <ConfirmFormButton
+                            message={`Deactivate "${s.title}"? It will disappear from the public 1-Day Internships page until you reactivate it.`}
+                            className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+                          >
+                            Deactivate
+                          </ConfirmFormButton>
+                        ) : (
+                          <button className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
+                            Activate
+                          </button>
+                        )}
                       </form>
                       <form action={toggleInternshipRegOpen.bind(null, s.id)} className="inline">
                         <button className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
@@ -102,9 +112,12 @@ export default async function InternshipSessionsPage() {
                         Regs ({Number(s.registrationCount)})
                       </Link>
                       <form action={deleteInternshipSession.bind(null, s.id)} className="inline">
-                        <button className="px-2 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50">
+                        <ConfirmFormButton
+                          message={`Permanently delete "${s.title}"? All ${Number(s.registrationCount)} registration(s) and linked companies for this session will be lost. This cannot be undone.`}
+                          className="px-2 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50"
+                        >
                           Delete
-                        </button>
+                        </ConfirmFormButton>
                       </form>
                     </div>
                   </td>

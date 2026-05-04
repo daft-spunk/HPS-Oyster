@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllCompanies, deleteCompany } from "@/lib/actions/library";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ConfirmFormButton } from "@/components/admin/ConfirmFormButton";
 
 export default async function CompaniesLibraryPage() {
   const companies = await getAllCompanies();
@@ -68,9 +69,12 @@ export default async function CompaniesLibraryPage() {
                       Edit
                     </Link>
                     <form action={deleteCompany.bind(null, c.id)} className="inline">
-                      <button className="px-2 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50">
+                      <ConfirmFormButton
+                        message={`Permanently delete ${c.name} from the company library? This cannot be undone. (Companies used in past sessions cannot be deleted.)`}
+                        className="px-2 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50"
+                      >
                         Delete
-                      </button>
+                      </ConfirmFormButton>
                     </form>
                   </td>
                 </tr>

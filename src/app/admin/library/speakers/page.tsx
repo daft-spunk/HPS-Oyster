@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllSpeakers, deleteSpeaker } from "@/lib/actions/library";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ConfirmFormButton } from "@/components/admin/ConfirmFormButton";
 
 export default async function SpeakersLibraryPage() {
   const speakers = await getAllSpeakers();
@@ -68,9 +69,12 @@ export default async function SpeakersLibraryPage() {
                       Edit
                     </Link>
                     <form action={deleteSpeaker.bind(null, s.id)} className="inline">
-                      <button className="px-2 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50">
+                      <ConfirmFormButton
+                        message={`Permanently delete ${s.name} from the speaker library? This cannot be undone. (Speakers used in past sessions cannot be deleted.)`}
+                        className="px-2 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50"
+                      >
                         Delete
-                      </button>
+                      </ConfirmFormButton>
                     </form>
                   </td>
                 </tr>
