@@ -179,6 +179,8 @@ export const internshipRegistrations = pgTable(
       () => sessionCompanies.id
     ),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [unique("unique_internship_reg").on(table.sessionId, table.classSection, table.rollNumber)]
+  }
+  // Uniqueness (one registration per student per session) is enforced in the
+  // server action so admin bulk-imports of legacy data can keep multiple
+  // submissions from the same student.
 );

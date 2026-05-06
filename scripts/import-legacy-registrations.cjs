@@ -88,27 +88,46 @@ function parseCsv(text) {
       return { id, reason: reason || null };
     };
 
-    let imported = 0;
+    // Insert every CSV row that isn't already in the DB at the EXACT same
+    // timestamp. We dedup on (class, roll, created_at_seconds) so re-running
+    // the importer is idempotent, but two genuinely-different submissions from
+    // the same student (e.g. updated reasons later in the day) both stay.
+    let inserted = 0;
     let skippedDup = 0;
     const errors = [];
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      const studentName = r["Name of the Student"] || "";
-      const rollNumber = r["Roll Number"] || "";
+      const studentName = (r["Name of the Student"] || "").trim();
+      const rollNumber = (r["Roll Number"] || "").trim();
+      const classSection = (r["Class/Section"] || "").trim();
       if (!studentName || !rollNumber) {
         errors.push(`Row ${i + 2}: missing student or roll`);
         continue;
       }
       const dateRaw = r["Date"] || "";
       const createdAt = dateRaw ? new Date(dateRaw.replace(" ", "T")) : null;
+      const finalCreatedAt = createdAt && !isNaN(createdAt.getTime()) ? createdAt : new Date();
 
       const p1 = lookup(r["Internship 1"] || "");
       const p2 = lookup(r["Internship 2"] || "");
       const p3 = lookup(r["Internship 3"] || "");
-
       if (!p1.id || !p1.reason) {
         errors.push(`Row ${i + 2} (${studentName}, roll ${rollNumber}): no first preference matched`);
+        continue;
+      }
+
+      // Idempotency: skip if a row with the same (class, roll, exact timestamp) is already in
+      const [existing] = await sql`
+        SELECT id FROM internship_registrations
+        WHERE session_id = ${SESSION_ID}
+          AND class_section = ${classSection}
+          AND roll_number = ${rollNumber}
+          AND date_trunc('second', created_at) = date_trunc('second', ${finalCreatedAt}::timestamptz)
+        LIMIT 1
+      `;
+      if (existing) {
+        skippedDup++;
         continue;
       }
 
@@ -122,27 +141,23 @@ function parseCsv(text) {
             pref_3_session_company_id, pref_3_reason,
             created_at
           ) VALUES (
-            ${SESSION_ID}, ${studentName}, ${r["Class/Section"] || ""}, ${rollNumber},
+            ${SESSION_ID}, ${studentName}, ${classSection}, ${rollNumber},
             ${r["Parent Name"] || ""}, ${r["Parent Email Id"] || ""}, ${r["Parent Phone Number"] || ""},
             ${r["Child s general interests"] || null},
             ${p1.id}, ${p1.reason},
             ${p2.id || null}, ${p2.reason || null},
             ${p3.id || null}, ${p3.reason || null},
-            ${createdAt && !isNaN(createdAt.getTime()) ? createdAt : new Date()}
+            ${finalCreatedAt}
           )
         `;
-        imported++;
+        inserted++;
       } catch (e) {
-        if (String(e.message || e).includes("unique_internship_reg") || (e.cause && String(e.cause.message).includes("unique_internship_reg"))) {
-          skippedDup++;
-        } else {
-          errors.push(`Row ${i + 2} (${studentName}): ${e.message || e}`);
-        }
+        errors.push(`Row ${i + 2} (${studentName}): ${e.message || e}`);
       }
     }
 
-    console.log(`\n✅ Imported: ${imported}`);
-    console.log(`↪︎ Skipped duplicates: ${skippedDup}`);
+    console.log(`\n✅ Inserted: ${inserted}`);
+    console.log(`↪︎ Skipped (already imported with same timestamp): ${skippedDup}`);
     if (errors.length) {
       console.log(`\n⚠ Errors / skips (${errors.length}):`);
       errors.forEach((e) => console.log("  -", e));
