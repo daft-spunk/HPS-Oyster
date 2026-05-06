@@ -16,6 +16,7 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { istLocalInputToUtc } from "@/lib/format";
 
 // ─── PUBLIC ─────────────────────────────────────────────
 
@@ -239,7 +240,7 @@ export async function createInternshipSession(
       targetClass: parsed.data.targetClass,
       maxPreferences: parsed.data.maxPreferences,
       description: parsed.data.description || null,
-      regDeadline: parsed.data.regDeadline ? new Date(parsed.data.regDeadline) : null,
+      regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
     })
     .returning({ id: internshipSessions.id });
 
@@ -264,7 +265,7 @@ export async function updateInternshipSession(
       targetClass: parsed.data.targetClass,
       maxPreferences: parsed.data.maxPreferences,
       description: parsed.data.description || null,
-      regDeadline: parsed.data.regDeadline ? new Date(parsed.data.regDeadline) : null,
+      regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
       updatedAt: new Date(),
     })
     .where(eq(internshipSessions.id, sessionId));

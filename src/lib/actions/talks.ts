@@ -16,6 +16,7 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { istLocalInputToUtc } from "@/lib/format";
 
 // ─── PUBLIC ─────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ export async function createTalkSession(
       description: parsed.data.description || null,
       sessionDate: parsed.data.sessionDate || null,
       timeSlot: parsed.data.timeSlot || null,
-      regDeadline: parsed.data.regDeadline ? new Date(parsed.data.regDeadline) : null,
+      regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
     })
     .returning({ id: talkSessions.id });
 
@@ -191,7 +192,7 @@ export async function updateTalkSession(
       description: parsed.data.description || null,
       sessionDate: parsed.data.sessionDate || null,
       timeSlot: parsed.data.timeSlot || null,
-      regDeadline: parsed.data.regDeadline ? new Date(parsed.data.regDeadline) : null,
+      regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
       updatedAt: new Date(),
     })
     .where(eq(talkSessions.id, sessionId));

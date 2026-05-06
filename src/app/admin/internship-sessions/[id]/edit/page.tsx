@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { utcToIstLocalInput } from "@/lib/format";
 import { internshipSessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { isAuthenticated } from "@/lib/auth";
@@ -35,7 +36,7 @@ export default async function EditInternshipSessionPage({
           targetClass: session.targetClass,
           maxPreferences: session.maxPreferences,
           description: session.description,
-          regDeadline: session.regDeadline ? session.regDeadline.toISOString().slice(0, 16) : null,
+          regDeadline: utcToIstLocalInput(session.regDeadline),
         }}
       />
     </div>
