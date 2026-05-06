@@ -16,7 +16,7 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { istLocalInputToUtc } from "@/lib/format";
+import { istLocalInputToUtc, anyDateOpen } from "@/lib/format";
 
 // ─── PUBLIC ─────────────────────────────────────────────
 
@@ -134,19 +134,36 @@ export async function registerForInternship(
     return { error: "Registration deadline has passed" };
   }
 
-  // Verify each provided session-company ID belongs to this session
+  // Verify each provided session-company belongs to this session, is active,
+  // and still has at least one date that hasn't hit the cutoff.
   const providedIds = [
     data.pref1SessionCompanyId,
     data.pref2SessionCompanyId,
     data.pref3SessionCompanyId,
   ].filter((v): v is string => Boolean(v));
   const valid = await db
-    .select({ id: sessionCompanies.id })
+    .select({
+      id: sessionCompanies.id,
+      name: companies.name,
+      isActive: sessionCompanies.isActive,
+      internshipDates: sessionCompanies.internshipDates,
+    })
     .from(sessionCompanies)
+    .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(sessionCompanies.sessionId, data.sessionId));
-  const validSet = new Set(valid.map((v) => v.id));
+  const validMap = new Map(valid.map((v) => [v.id, v]));
+  const cutoff = session.registrationCutoffDays ?? 2;
   for (const id of providedIds) {
-    if (!validSet.has(id)) return { error: "Invalid company selection" };
+    const sc = validMap.get(id);
+    if (!sc) return { error: "Invalid company selection" };
+    if (!sc.isActive) {
+      return { error: `${sc.name} is no longer accepting registrations` };
+    }
+    if (!anyDateOpen(sc.internshipDates, cutoff)) {
+      return {
+        error: `Registration for ${sc.name} has closed (must apply at least ${cutoff} day${cutoff === 1 ? "" : "s"} before the internship date)`,
+      };
+    }
   }
 
   // Enforce per-session max-preferences cap (extra prefs above the limit are dropped)
@@ -239,6 +256,7 @@ export async function createInternshipSession(
       editionLabel: parsed.data.editionLabel,
       targetClass: parsed.data.targetClass,
       maxPreferences: parsed.data.maxPreferences,
+      registrationCutoffDays: parsed.data.registrationCutoffDays,
       description: parsed.data.description || null,
       regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
     })
@@ -264,6 +282,7 @@ export async function updateInternshipSession(
       editionLabel: parsed.data.editionLabel,
       targetClass: parsed.data.targetClass,
       maxPreferences: parsed.data.maxPreferences,
+      registrationCutoffDays: parsed.data.registrationCutoffDays,
       description: parsed.data.description || null,
       regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
       updatedAt: new Date(),

@@ -43,3 +43,24 @@ export function istLocalInputToUtc(value: string | null | undefined): Date | nul
   const d = new Date(`${withSeconds}+05:30`);
   return isNaN(d.getTime()) ? null : d;
 }
+
+// ─── Internship date cutoff helpers ────────────────────────────────────────
+// "Cutoff" = stop accepting registrations N days before each internship date.
+
+/** Is this internship date still open for registration today? */
+export function isDateOpen(internshipDate: string | Date, cutoffDays: number): boolean {
+  const d = typeof internshipDate === "string" ? new Date(internshipDate) : internshipDate;
+  if (isNaN(d.getTime())) return true;
+  const cutoff = new Date(d.getTime() - cutoffDays * 24 * 60 * 60 * 1000);
+  return Date.now() < cutoff.getTime();
+}
+
+/** Is at least one of these internship dates still open? */
+export function anyDateOpen(
+  dates: (string | Date)[] | null | undefined,
+  cutoffDays: number
+): boolean {
+  // No dates = treat as always open (admin hasn't pinned a date yet)
+  if (!dates || dates.length === 0) return true;
+  return dates.some((d) => isDateOpen(d, cutoffDays));
+}

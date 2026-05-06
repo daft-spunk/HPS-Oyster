@@ -41,6 +41,7 @@ export const internshipSessionSchema = z.object({
   editionLabel: z.string().min(1, "Edition label is required"),
   targetClass: z.enum(["9", "10", "9_10"]),
   maxPreferences: z.coerce.number().int().min(1).max(3).default(3),
+  registrationCutoffDays: z.coerce.number().int().min(0).max(60).default(2),
   description: z.string().optional(),
   regDeadline: z.string().optional(),
 });

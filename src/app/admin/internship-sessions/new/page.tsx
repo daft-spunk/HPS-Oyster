@@ -60,6 +60,13 @@ export default function NewInternshipSessionPage() {
           </p>
         </div>
         <Field
+          label="Registration cutoff (days before internship)"
+          name="registrationCutoffDays"
+          type="number"
+          defaultValue={2}
+          helpText="Students cannot register for an internship within this many days of its date. Default: 2 days."
+        />
+        <Field
           label="Session Description"
           name="description"
           textarea

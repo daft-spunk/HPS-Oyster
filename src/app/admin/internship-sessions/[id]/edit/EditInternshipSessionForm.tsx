@@ -11,6 +11,7 @@ interface Session {
   editionLabel: string;
   targetClass: "9" | "10" | "9_10";
   maxPreferences: number;
+  registrationCutoffDays: number;
   description: string | null;
   regDeadline: string | null;
 }
@@ -67,6 +68,13 @@ export function EditInternshipSessionForm({ session }: { session: Session }) {
           How many preferences a student can pick. The first is required; extras are optional.
         </p>
       </div>
+      <Field
+        label="Registration cutoff (days before internship)"
+        name="registrationCutoffDays"
+        type="number"
+        defaultValue={session.registrationCutoffDays}
+        helpText="Students cannot register for an internship within this many days of its date."
+      />
       <Field
         label="Session Description"
         name="description"

@@ -7,7 +7,7 @@ import {
 import { InternshipRegistrationForm } from "./InternshipRegistrationForm";
 import { InternshipDetails } from "./InternshipDetails";
 import { PublicNavbar } from "@/components/PublicNavbar";
-import { formatTargetClass } from "@/lib/format";
+import { formatTargetClass, isDateOpen, anyDateOpen } from "@/lib/format";
 
 export default async function InternshipsPage({
   searchParams,
@@ -84,24 +84,36 @@ export default async function InternshipsPage({
         {/* Company Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {session.companies.map((company) => {
-            const formattedDates = (company.internshipDates ?? [])
-              .map((d) =>
-                new Date(d).toLocaleDateString("en-GB", {
-                  weekday: "short",
-                  day: "2-digit",
-                  month: "short",
-                  timeZone: "Asia/Kolkata",
-                })
-              );
+            const cutoff = session.registrationCutoffDays ?? 2;
+            const dateInfo = (company.internshipDates ?? []).map((d) => ({
+              raw: d,
+              label: new Date(d).toLocaleDateString("en-GB", {
+                weekday: "short",
+                day: "2-digit",
+                month: "short",
+                timeZone: "Asia/Kolkata",
+              }),
+              open: isDateOpen(d, cutoff),
+            }));
+            const companyOpen = anyDateOpen(company.internshipDates, cutoff);
             return (
               <div
                 key={company.sessionCompanyId}
-                className="bg-white border rounded-lg p-5 flex flex-col"
+                className={`bg-white border rounded-lg p-5 flex flex-col ${
+                  !companyOpen ? "opacity-70" : ""
+                }`}
               >
                 <h3 className="font-bold text-lg mb-1">{company.name}</h3>
-                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium mb-3 self-start">
-                  {company.sector}
-                </span>
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                    {company.sector}
+                  </span>
+                  {!companyOpen && (
+                    <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                      Registration closed
+                    </span>
+                  )}
+                </div>
                 <div className="mb-3 flex items-center gap-2 flex-wrap text-sm font-medium text-primary">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -115,13 +127,18 @@ export default async function InternshipsPage({
                       clipRule="evenodd"
                     />
                   </svg>
-                  {formattedDates.length > 0 ? (
-                    formattedDates.map((d, i) => (
+                  {dateInfo.length > 0 ? (
+                    dateInfo.map((d, i) => (
                       <span
                         key={i}
-                        className="inline-block px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded"
+                        className={
+                          d.open
+                            ? "inline-block px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded"
+                            : "inline-block px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-500 rounded line-through"
+                        }
+                        title={d.open ? "Open for registration" : "Registration closed for this date"}
                       >
-                        {d}
+                        {d.label}
                       </span>
                     ))
                   ) : (
@@ -176,11 +193,15 @@ export default async function InternshipsPage({
             <InternshipRegistrationForm
               sessionId={session.id}
               maxPreferences={session.maxPreferences}
-              companies={session.companies.map((c) => ({
-                sessionCompanyId: c.sessionCompanyId,
-                name: c.name,
-                sector: c.sector,
-              }))}
+              companies={session.companies
+                .filter(
+                  (c) => c.isActive && anyDateOpen(c.internshipDates, session.registrationCutoffDays)
+                )
+                .map((c) => ({
+                  sessionCompanyId: c.sessionCompanyId,
+                  name: c.name,
+                  sector: c.sector,
+                }))}
             />
           </div>
         ) : (
