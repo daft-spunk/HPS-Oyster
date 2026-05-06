@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Claude Code local settings
 .claude/
+
+# Personal data — never commit
+scripts/legacy-export.csv

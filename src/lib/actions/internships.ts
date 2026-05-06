@@ -357,6 +357,258 @@ export async function toggleSessionCompanyActive(sessionCompanyId: string, sessi
   revalidatePath("/internships");
 }
 
+// ─── ADMIN: MANUAL REGISTRATION ENTRY ──────────────────────────────────
+
+interface ManualPref {
+  sessionCompanyId: string | null;
+  reason: string | null;
+}
+
+interface ManualRegistrationInput {
+  sessionId: string;
+  studentName: string;
+  classSection: string;
+  rollNumber: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
+  interests?: string | null;
+  prefs: ManualPref[]; // 1..3
+  createdAt?: Date | null;
+}
+
+async function insertOneRegistration(input: ManualRegistrationInput) {
+  const prefs = input.prefs;
+  const p1 = prefs[0];
+  if (!p1?.sessionCompanyId || !p1.reason) {
+    throw new Error(`Roll ${input.rollNumber}: at least one preference (with reason) required`);
+  }
+  await db.insert(internshipRegistrations).values({
+    sessionId: input.sessionId,
+    studentName: input.studentName,
+    classSection: input.classSection,
+    rollNumber: input.rollNumber,
+    parentName: input.parentName,
+    parentEmail: input.parentEmail,
+    parentPhone: input.parentPhone,
+    interests: input.interests || null,
+    pref1SessionCompanyId: p1.sessionCompanyId,
+    pref1Reason: p1.reason,
+    pref2SessionCompanyId: prefs[1]?.sessionCompanyId || null,
+    pref2Reason: prefs[1]?.reason || null,
+    pref3SessionCompanyId: prefs[2]?.sessionCompanyId || null,
+    pref3Reason: prefs[2]?.reason || null,
+    ...(input.createdAt ? { createdAt: input.createdAt } : {}),
+  });
+}
+
+export async function manuallyAddInternshipRegistration(
+  sessionId: string,
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData
+) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  try {
+    const get = (k: string) => (formData.get(k) as string | null)?.trim() || "";
+    const collect = (i: number): ManualPref => {
+      const id = get(`pref${i}SessionCompanyId`);
+      const reason = get(`pref${i}Reason`);
+      return { sessionCompanyId: id || null, reason: reason || null };
+    };
+
+    await insertOneRegistration({
+      sessionId,
+      studentName: get("studentName"),
+      classSection: get("classSection"),
+      rollNumber: get("rollNumber"),
+      parentName: get("parentName"),
+      parentEmail: get("parentEmail"),
+      parentPhone: get("parentPhone"),
+      interests: get("interests") || null,
+      prefs: [collect(1), collect(2), collect(3)],
+      createdAt: get("registeredAt") ? new Date(get("registeredAt")) : null,
+    });
+
+    revalidatePath(`/admin/internship-sessions/${sessionId}`);
+    revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? `${e.message} ${(e as { cause?: Error }).cause?.message ?? ""}` : "";
+    if (msg.includes("unique_internship_reg")) {
+      return { error: "A registration with that roll number already exists" };
+    }
+    return { error: e instanceof Error ? e.message : "Failed to add registration" };
+  }
+}
+
+// Parse CSV rows in the legacy hpsoyster.com export format and map to
+// session_company IDs by fuzzy-matching the company name at the start of
+// each "Internship N" column.
+function parseLegacyCsv(text: string): Array<Record<string, string>> {
+  // Simple, RFC-4180-ish CSV parser that handles quoted fields with commas/newlines/escaped quotes.
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ",") {
+        row.push(field);
+        field = "";
+      } else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        row.push(field);
+        if (row.some((c) => c.length > 0)) rows.push(row);
+        row = [];
+        field = "";
+      } else {
+        field += ch;
+      }
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    if (row.some((c) => c.length > 0)) rows.push(row);
+  }
+
+  // Find header row — first row containing "Roll Number" or similar
+  let headerIdx = rows.findIndex((r) => r.some((c) => /Roll\s*Number/i.test(c)));
+  if (headerIdx < 0) headerIdx = 0;
+  const headers = rows[headerIdx].map((h) => h.trim());
+  return rows.slice(headerIdx + 1).map((r) => {
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      obj[h] = (r[i] || "").trim();
+    });
+    return obj;
+  });
+}
+
+export async function bulkUploadInternshipRegistrations(
+  sessionId: string,
+  _prev: { errors?: string[]; imported?: number } | null,
+  formData: FormData
+) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+
+  const file = formData.get("csv");
+  if (!(file instanceof File) || file.size === 0) {
+    return { errors: ["Please choose a CSV file to upload"] };
+  }
+  const skipDuplicates = formData.get("skipDuplicates") === "on";
+
+  const text = await file.text();
+  const rows = parseLegacyCsv(text);
+
+  // Build a lookup of session_company by lowercased company name
+  const sessionCompaniesList = await db
+    .select({
+      id: sessionCompanies.id,
+      name: companies.name,
+    })
+    .from(sessionCompanies)
+    .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
+    .where(eq(sessionCompanies.sessionId, sessionId));
+  const byName = new Map<string, string>();
+  for (const sc of sessionCompaniesList) {
+    byName.set(sc.name.toLowerCase().trim(), sc.id);
+  }
+
+  const lookup = (cell: string): { id: string | null; reason: string | null } => {
+    if (!cell || cell.trim() === "") return { id: null, reason: null };
+    // Format: "<Company Name>, <Date label> - <Reason>"
+    const dashIdx = cell.indexOf(" - ");
+    const head = (dashIdx > 0 ? cell.slice(0, dashIdx) : cell).trim();
+    const reason = dashIdx > 0 ? cell.slice(dashIdx + 3).trim() : "";
+    // Take everything before the first comma as the company name (rest is the date label)
+    const companyName = head.split(",")[0].trim().toLowerCase();
+    let id: string | null = null;
+    for (const [k, v] of byName) {
+      if (k === companyName || k.startsWith(companyName) || companyName.startsWith(k)) {
+        id = v;
+        break;
+      }
+    }
+    return { id, reason: reason || null };
+  };
+
+  const errors: string[] = [];
+  let imported = 0;
+  let skippedDuplicates = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const studentName = r["Name of the Student"] || r["Student Name"] || "";
+    const rollNumber = r["Roll Number"] || "";
+    if (!studentName || !rollNumber) {
+      errors.push(`Row ${i + 2}: missing student name or roll number — skipped`);
+      continue;
+    }
+    const dateRaw = r["Date"] || "";
+    const createdAt = dateRaw ? new Date(dateRaw.replace(" ", "T")) : null;
+
+    const p1 = lookup(r["Internship 1"] || "");
+    const p2 = lookup(r["Internship 2"] || "");
+    const p3 = lookup(r["Internship 3"] || "");
+
+    if (!p1.id || !p1.reason) {
+      errors.push(
+        `Row ${i + 2} (${studentName}, roll ${rollNumber}): no valid first preference found — skipped`
+      );
+      continue;
+    }
+
+    try {
+      await insertOneRegistration({
+        sessionId,
+        studentName,
+        classSection: r["Class/Section"] || "",
+        rollNumber,
+        parentName: r["Parent Name"] || "",
+        parentEmail: r["Parent Email Id"] || r["Parent Email"] || "",
+        parentPhone: r["Parent Phone Number"] || r["Parent Phone"] || "",
+        interests: r["Child s general interests"] || r["Interests"] || null,
+        prefs: [p1, p2, p3].map((p) => ({ sessionCompanyId: p.id, reason: p.reason })),
+        createdAt: createdAt && !isNaN(createdAt.getTime()) ? createdAt : null,
+      });
+      imported++;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? `${e.message} ${(e as { cause?: Error }).cause?.message ?? ""}` : "";
+      if (msg.includes("unique_internship_reg")) {
+        if (skipDuplicates) {
+          skippedDuplicates++;
+        } else {
+          errors.push(`Row ${i + 2} (${studentName}, roll ${rollNumber}): already exists — check "skip duplicates" to ignore`);
+        }
+      } else {
+        errors.push(`Row ${i + 2} (${studentName}): ${e instanceof Error ? e.message : "insert failed"}`);
+      }
+    }
+  }
+
+  if (skippedDuplicates > 0) {
+    errors.unshift(`${skippedDuplicates} duplicate row(s) skipped`);
+  }
+
+  revalidatePath(`/admin/internship-sessions/${sessionId}`);
+  revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
+  revalidatePath("/admin");
+
+  return { imported, errors };
+}
+
 export async function deleteInternshipRegistration(registrationId: string, sessionId: string) {
   if (!(await isAuthenticated())) throw new Error("Unauthorized");
   await db.delete(internshipRegistrations).where(eq(internshipRegistrations.id, registrationId));

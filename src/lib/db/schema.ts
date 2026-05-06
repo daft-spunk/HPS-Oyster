@@ -180,5 +180,5 @@ export const internshipRegistrations = pgTable(
     ),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [unique("unique_internship_reg").on(table.sessionId, table.rollNumber)]
+  (table) => [unique("unique_internship_reg").on(table.sessionId, table.classSection, table.rollNumber)]
 );

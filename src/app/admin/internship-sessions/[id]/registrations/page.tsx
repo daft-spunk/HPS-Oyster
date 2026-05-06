@@ -25,12 +25,20 @@ export default async function InternshipRegistrationsPage({
         backHref={`/admin/internship-sessions/${id}`}
         backLabel="Back to Session"
         action={
-          <a
-            href={`/admin/internship-sessions/${id}/registrations/export`}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-          >
-            Export CSV
-          </a>
+          <div className="flex gap-2">
+            <a
+              href={`/admin/internship-sessions/${id}/registrations/add`}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            >
+              + Add / Import
+            </a>
+            <a
+              href={`/admin/internship-sessions/${id}/registrations/export`}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+            >
+              Export CSV
+            </a>
+          </div>
         }
       />
 
