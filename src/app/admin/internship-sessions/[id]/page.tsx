@@ -78,7 +78,11 @@ export default async function InternshipSessionDetail({
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{c.sector}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.internshipDate || "TBD"}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {c.internshipDates && c.internshipDates.length > 0
+                        ? c.internshipDates.join(", ")
+                        : "TBD"}
+                    </td>
                     <td className="px-4 py-3">{c.slotsAvailable}</td>
                     <td className="px-4 py-3 text-gray-500">{c.displayOrder}</td>
                     <td className="px-4 py-3 text-right">
