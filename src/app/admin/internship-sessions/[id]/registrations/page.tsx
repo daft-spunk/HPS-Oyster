@@ -1,6 +1,7 @@
 import { getInternshipRegistrations, getInternshipSessionWithCompanies, deleteInternshipRegistration } from "@/lib/actions/internships";
 import { isAuthenticated } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DeleteRegistrationButton } from "@/components/admin/DeleteRegistrationButton";
 
@@ -85,10 +86,19 @@ export default async function InternshipRegistrationsPage({
                   <td className="px-4 py-3">{r.parentEmail}</td>
                   <td className="px-4 py-3">{r.parentPhone}</td>
                   <td className="px-4 py-3 text-right">
-                    <DeleteRegistrationButton
-                      studentName={r.studentName}
-                      onDelete={deleteInternshipRegistration.bind(null, r.id, id)}
-                    />
+                    <div className="inline-flex gap-2 items-center">
+                      <Link
+                        href={`/admin/internship-sessions/${id}/registrations/${r.id}/edit`}
+                        className="text-xs text-blue-600 hover:underline"
+                        title={`Edit registration for ${r.studentName}`}
+                      >
+                        Edit
+                      </Link>
+                      <DeleteRegistrationButton
+                        studentName={r.studentName}
+                        onDelete={deleteInternshipRegistration.bind(null, r.id, id)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

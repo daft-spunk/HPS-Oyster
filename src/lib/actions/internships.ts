@@ -357,6 +357,68 @@ export async function toggleSessionCompanyActive(sessionCompanyId: string, sessi
   revalidatePath("/internships");
 }
 
+export async function getInternshipRegistration(registrationId: string) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  const [row] = await db
+    .select()
+    .from(internshipRegistrations)
+    .where(eq(internshipRegistrations.id, registrationId));
+  return row || null;
+}
+
+export async function updateInternshipRegistration(
+  registrationId: string,
+  sessionId: string,
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData
+) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  try {
+    const get = (k: string) => (formData.get(k) as string | null)?.trim() || "";
+    const collect = (i: number) => {
+      const id = get(`pref${i}SessionCompanyId`);
+      const reason = get(`pref${i}Reason`);
+      return { id: id || null, reason: reason || null };
+    };
+    const p1 = collect(1);
+    const p2 = collect(2);
+    const p3 = collect(3);
+    if (!p1.id || !p1.reason) {
+      return { error: "First preference (with reason) is required" };
+    }
+
+    await db
+      .update(internshipRegistrations)
+      .set({
+        studentName: get("studentName"),
+        classSection: get("classSection"),
+        rollNumber: get("rollNumber"),
+        parentName: get("parentName"),
+        parentEmail: get("parentEmail"),
+        parentPhone: get("parentPhone"),
+        interests: get("interests") || null,
+        pref1SessionCompanyId: p1.id,
+        pref1Reason: p1.reason,
+        pref2SessionCompanyId: p2.id,
+        pref2Reason: p2.reason,
+        pref3SessionCompanyId: p3.id,
+        pref3Reason: p3.reason,
+      })
+      .where(eq(internshipRegistrations.id, registrationId));
+
+    revalidatePath(`/admin/internship-sessions/${sessionId}`);
+    revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? `${e.message} ${(e as { cause?: Error }).cause?.message ?? ""}` : "";
+    if (msg.includes("unique_internship_reg")) {
+      return { error: "Another registration with the same class + roll number already exists" };
+    }
+    return { error: e instanceof Error ? e.message : "Failed to update registration" };
+  }
+}
+
 // ─── ADMIN: MANUAL REGISTRATION ENTRY ──────────────────────────────────
 
 interface ManualPref {
@@ -648,5 +710,5 @@ export async function getInternshipRegistrations(sessionId: string) {
     })
     .from(internshipRegistrations)
     .where(eq(internshipRegistrations.sessionId, sessionId))
-    .orderBy(internshipRegistrations.createdAt);
+    .orderBy(desc(internshipRegistrations.createdAt));
 }

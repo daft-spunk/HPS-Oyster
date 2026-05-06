@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { logoutAction } from "@/lib/actions/auth";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -15,10 +16,17 @@ export default async function AdminLayout({
       {/* Sidebar */}
       <aside className="w-60 bg-[#132E5A] text-white flex flex-col">
         <div className="px-5 py-5 border-b border-white/10">
-          <Link href="/admin" className="font-bold text-base block">
-            HPS Oyster
+          <Link href="/admin" className="block">
+            <Image
+              src="/assets/logo.png"
+              alt="HPS World is My Oyster"
+              width={200}
+              height={56}
+              priority
+              style={{ width: "auto", height: "44px" }}
+            />
           </Link>
-          <p className="text-xs text-blue-200 mt-1">Admin Panel</p>
+          <p className="text-xs text-blue-200 mt-2">Admin Panel</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-6 text-sm">

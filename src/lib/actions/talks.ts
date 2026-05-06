@@ -352,5 +352,5 @@ export async function getTalkRegistrations(sessionId: string) {
     .innerJoin(sessionSpeakers, eq(talkRegistrations.sessionSpeakerId, sessionSpeakers.id))
     .innerJoin(speakers, eq(sessionSpeakers.speakerId, speakers.id))
     .where(eq(talkRegistrations.sessionId, sessionId))
-    .orderBy(talkRegistrations.createdAt);
+    .orderBy(desc(talkRegistrations.createdAt));
 }
