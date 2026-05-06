@@ -43,6 +43,8 @@ export default async function TalkRegistrationsPage({
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b text-left">
               <tr>
+                <th className="px-4 py-3 font-medium text-gray-500 w-12">#</th>
+                <th className="px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Registered At</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Student</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Class</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Roll #</th>
@@ -54,8 +56,17 @@ export default async function TalkRegistrationsPage({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {registrations.map((r) => (
+              {registrations.map((r, i) => (
                 <tr key={r.id}>
+                  <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    {r.createdAt
+                      ? new Date(r.createdAt).toLocaleString("en-IN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })
+                      : "—"}
+                  </td>
                   <td className="px-4 py-3">{r.studentName}</td>
                   <td className="px-4 py-3">{r.classSection}</td>
                   <td className="px-4 py-3">{r.rollNumber}</td>
