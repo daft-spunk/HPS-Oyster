@@ -79,6 +79,20 @@ export async function getInternshipSessionWithCompanies(sessionId: string) {
       whatToExpect: sessionCompanies.whatToExpect,
       whatToBring: sessionCompanies.whatToBring,
       isActive: sessionCompanies.isActive,
+      registrationCount: sql<number>`(
+        SELECT COUNT(*) FROM internship_registrations ir
+        WHERE ir.session_id = ${sql.raw('"session_companies"."session_id"')}
+          AND (
+            ir.pref_1_session_company_id = ${sql.raw('"session_companies"."id"')} OR
+            ir.pref_2_session_company_id = ${sql.raw('"session_companies"."id"')} OR
+            ir.pref_3_session_company_id = ${sql.raw('"session_companies"."id"')}
+          )
+      )`.as("registration_count"),
+      pref1Count: sql<number>`(
+        SELECT COUNT(*) FROM internship_registrations ir
+        WHERE ir.session_id = ${sql.raw('"session_companies"."session_id"')}
+          AND ir.pref_1_session_company_id = ${sql.raw('"session_companies"."id"')}
+      )`.as("pref1_count"),
     })
     .from(sessionCompanies)
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))

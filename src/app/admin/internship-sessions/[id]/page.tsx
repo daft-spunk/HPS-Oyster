@@ -62,6 +62,7 @@ export default async function InternshipSessionDetail({
                   <th className="px-4 py-3 font-medium text-gray-500">Sector</th>
                   <th className="px-4 py-3 font-medium text-gray-500">Date</th>
                   <th className="px-4 py-3 font-medium text-gray-500">Slots</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">Regs</th>
                   <th className="px-4 py-3 font-medium text-gray-500">Order</th>
                   <th className="px-4 py-3 font-medium text-gray-500 text-right">Action</th>
                 </tr>
@@ -84,6 +85,15 @@ export default async function InternshipSessionDetail({
                         : "TBD"}
                     </td>
                     <td className="px-4 py-3">{c.slotsAvailable}</td>
+                    <td
+                      className="px-4 py-3 text-gray-700"
+                      title={`${Number(c.pref1Count)} as 1st preference, ${Number(c.registrationCount)} total picks`}
+                    >
+                      <span className="font-medium">{Number(c.registrationCount)}</span>
+                      <span className="text-xs text-gray-400 ml-1">
+                        ({Number(c.pref1Count)} as #1)
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-gray-500">{c.displayOrder}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-3 items-center">
