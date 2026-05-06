@@ -233,12 +233,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER WITH HPS AERIAL — Join Us */}
+      {/* FOOTER WITH HPS AERIAL — Join Us (parallax) */}
       <section
-        className="relative bg-cover bg-center bg-no-repeat py-20 px-4"
+        className="relative bg-cover bg-center bg-no-repeat bg-fixed py-24 md:py-32 px-4"
         style={{ backgroundImage: `url(/assets/HPS-Aerial.png)` }}
       >
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-[1] container mx-auto text-white text-center max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             Join Us On This Adventure
