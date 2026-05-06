@@ -6,6 +6,7 @@ import { formatTargetClass } from "@/lib/format";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { HighlightsCarousel } from "@/components/HighlightsCarousel";
 import { FaqList } from "@/components/FaqList";
+import { StickyCtaBar, type StickyCta } from "@/components/StickyCtaBar";
 
 const CAREER_FIELDS = [
   { icon: "/assets/icons/Bag.png", title: "Startups:", desc: "Immerse yourself in the world of innovation and entrepreneurship." },
@@ -40,6 +41,17 @@ export default async function HomePage() {
     getActiveTalkSessions(),
     getActiveInternshipSessions(),
   ]);
+
+  const stickyCtas: StickyCta[] = [
+    ...activeTalks.map((s) => ({
+      label: `Register for ${formatTargetClass(s.targetClass)} Role Model Talks`,
+      href: "/talks",
+    })),
+    ...activeInternships.map((s) => ({
+      label: `Register for ${formatTargetClass(s.targetClass)} 1-Day Internships`,
+      href: s.targetClass === "9_10" ? "/internships" : `/internships?class=${s.targetClass}`,
+    })),
+  ];
 
   return (
     <div className="bg-white text-gray-900">
@@ -268,6 +280,8 @@ export default async function HomePage() {
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">FAQs</h2>
         <FaqList faqs={FAQS} />
       </section>
+
+      <StickyCtaBar ctas={stickyCtas} />
 
       {/* Bottom footer bar */}
       <footer className="bg-[#132E5A] text-white py-6">
