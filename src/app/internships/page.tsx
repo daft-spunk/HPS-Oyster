@@ -102,30 +102,34 @@ export default async function InternshipsPage({
                 <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium mb-3 self-start">
                   {company.sector}
                 </span>
-                {formattedDates.length > 0 && (
-                  <div className="mb-3 flex items-center gap-2 flex-wrap text-sm font-medium text-primary">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className="w-4 h-4 flex-shrink-0"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {formattedDates.map((d, i) => (
+                <div className="mb-3 flex items-center gap-2 flex-wrap text-sm font-medium text-primary">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-4 h-4 flex-shrink-0"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {formattedDates.length > 0 ? (
+                    formattedDates.map((d, i) => (
                       <span
                         key={i}
                         className="inline-block px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded"
                       >
                         {d}
                       </span>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <span className="inline-block px-2 py-0.5 bg-gray-100 border border-gray-200 text-gray-600 rounded italic">
+                      To be announced
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-600 text-sm leading-relaxed mb-3">
                   {company.description}
                 </p>
