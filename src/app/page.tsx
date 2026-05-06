@@ -4,6 +4,8 @@ import { getActiveTalkSessions } from "@/lib/actions/talks";
 import { getActiveInternshipSessions } from "@/lib/actions/internships";
 import { formatTargetClass } from "@/lib/format";
 import { PublicNavbar } from "@/components/PublicNavbar";
+import { HighlightsCarousel } from "@/components/HighlightsCarousel";
+import { FaqList } from "@/components/FaqList";
 
 const CAREER_FIELDS = [
   { icon: "/assets/icons/Bag.png", title: "Startups:", desc: "Immerse yourself in the world of innovation and entrepreneurship." },
@@ -155,15 +157,7 @@ export default async function HomePage() {
               </span>
             </div>
           </div>
-          <div className="rounded-lg overflow-hidden shadow-md">
-            <Image
-              src="/assets/image-1.png"
-              alt="HPS students at T-Hub"
-              width={800}
-              height={500}
-              className="w-full h-auto"
-            />
-          </div>
+          <HighlightsCarousel />
         </div>
       </section>
 
@@ -272,25 +266,7 @@ export default async function HomePage() {
       {/* FAQs */}
       <section className="container mx-auto px-4 py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">FAQs</h2>
-        <div className="grid md:grid-cols-2 gap-3 max-w-5xl mx-auto">
-          {FAQS.map((faq, i) => (
-            <details
-              key={i}
-              className="bg-white border border-gray-200 rounded-lg overflow-hidden group"
-              open={i === 0}
-            >
-              <summary className="cursor-pointer list-none px-4 py-3 bg-[#004B9C] text-white font-medium flex justify-between items-center group-open:bg-[#004B9C]">
-                <span>{faq.q}</span>
-                <span className="text-xl group-open:rotate-180 transition-transform">
-                  ▾
-                </span>
-              </summary>
-              <div className="px-4 py-3 text-sm leading-relaxed text-gray-700">
-                {faq.a}
-              </div>
-            </details>
-          ))}
-        </div>
+        <FaqList faqs={FAQS} />
       </section>
 
       {/* Bottom footer bar */}
