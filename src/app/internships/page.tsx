@@ -64,6 +64,7 @@ export default async function InternshipsPage({
               {new Date(session.regDeadline).toLocaleString("en-IN", {
                 dateStyle: "long",
                 timeStyle: "short",
+                timeZone: "Asia/Kolkata",
               })}
             </p>
           )}
@@ -89,6 +90,7 @@ export default async function InternshipsPage({
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
+                  timeZone: "Asia/Kolkata",
                 })
               : null;
             return (

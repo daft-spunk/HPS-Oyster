@@ -74,6 +74,7 @@ export default async function InternshipRegistrationsPage({
                       ? new Date(r.createdAt).toLocaleString("en-IN", {
                           dateStyle: "medium",
                           timeStyle: "short",
+                          timeZone: "Asia/Kolkata",
                         })
                       : "—"}
                   </td>

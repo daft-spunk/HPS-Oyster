@@ -66,7 +66,11 @@ export default async function InternshipSessionsPage() {
                   <td className="px-4 py-3">{formatTargetClass(s.targetClass)}</td>
                   <td className="px-4 py-3 text-gray-500">{s.editionLabel}</td>
                   <td className="px-4 py-3 text-gray-500">
-                    {s.regDeadline ? new Date(s.regDeadline).toLocaleDateString() : "—"}
+                    {s.regDeadline
+                      ? new Date(s.regDeadline).toLocaleDateString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                        })
+                      : "—"}
                   </td>
                   <td className="px-4 py-3">{Number(s.companyCount)}</td>
                   <td className="px-4 py-3">{Number(s.registrationCount)}</td>

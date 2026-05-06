@@ -72,6 +72,7 @@ export default async function TalksPage() {
                     {new Date(session.regDeadline).toLocaleString("en-IN", {
                       dateStyle: "long",
                       timeStyle: "short",
+                      timeZone: "Asia/Kolkata",
                     })}
                   </p>
                 )}

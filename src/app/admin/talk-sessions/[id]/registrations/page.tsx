@@ -64,6 +64,7 @@ export default async function TalkRegistrationsPage({
                       ? new Date(r.createdAt).toLocaleString("en-IN", {
                           dateStyle: "medium",
                           timeStyle: "short",
+                          timeZone: "Asia/Kolkata",
                         })
                       : "—"}
                   </td>

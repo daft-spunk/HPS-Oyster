@@ -28,7 +28,7 @@ export default async function InternshipSessionDetail({
     <div>
       <PageHeader
         title={session.title}
-        subtitle={`${formatTargetClass(session.targetClass)} · ${session.editionLabel}${session.regDeadline ? ` · Deadline ${new Date(session.regDeadline).toLocaleDateString()}` : ""}`}
+        subtitle={`${formatTargetClass(session.targetClass)} · ${session.editionLabel}${session.regDeadline ? ` · Deadline ${new Date(session.regDeadline).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}` : ""}`}
         backHref="/admin/internship-sessions"
         backLabel="Back to Internship Sessions"
         action={
