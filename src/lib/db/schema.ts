@@ -136,7 +136,7 @@ export const sessionCompanies = pgTable(
     companyId: uuid("company_id")
       .notNull()
       .references(() => companies.id, { onDelete: "restrict" }),
-    internshipDate: date("internship_date"),
+    internshipDates: date("internship_dates").array(),
     slotsAvailable: integer("slots_available").notNull().default(2),
     displayOrder: integer("display_order").notNull().default(0),
     aboutInternship: text("about_internship"),

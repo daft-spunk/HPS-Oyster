@@ -84,15 +84,15 @@ export default async function InternshipsPage({
         {/* Company Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {session.companies.map((company) => {
-            const formattedDate = company.internshipDate
-              ? new Date(company.internshipDate).toLocaleDateString("en-GB", {
+            const formattedDates = (company.internshipDates ?? [])
+              .map((d) =>
+                new Date(d).toLocaleDateString("en-GB", {
                   weekday: "short",
                   day: "2-digit",
                   month: "short",
-                  year: "numeric",
                   timeZone: "Asia/Kolkata",
                 })
-              : null;
+              );
             return (
               <div
                 key={company.sessionCompanyId}
@@ -102,13 +102,13 @@ export default async function InternshipsPage({
                 <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium mb-3 self-start">
                   {company.sector}
                 </span>
-                {formattedDate && (
-                  <div className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                {formattedDates.length > 0 && (
+                  <div className="mb-3 flex items-center gap-2 flex-wrap text-sm font-medium text-primary">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
-                      className="w-4 h-4"
+                      className="w-4 h-4 flex-shrink-0"
                     >
                       <path
                         fillRule="evenodd"
@@ -116,7 +116,14 @@ export default async function InternshipsPage({
                         clipRule="evenodd"
                       />
                     </svg>
-                    {formattedDate}
+                    {formattedDates.map((d, i) => (
+                      <span
+                        key={i}
+                        className="inline-block px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded"
+                      >
+                        {d}
+                      </span>
+                    ))}
                   </div>
                 )}
                 <p className="text-gray-600 text-sm leading-relaxed mb-3">

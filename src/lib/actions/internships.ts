@@ -71,7 +71,7 @@ export async function getInternshipSessionWithCompanies(sessionId: string) {
       sector: companies.sector,
       description: companies.description,
       websiteUrl: companies.websiteUrl,
-      internshipDate: sessionCompanies.internshipDate,
+      internshipDates: sessionCompanies.internshipDates,
       slotsAvailable: sessionCompanies.slotsAvailable,
       displayOrder: sessionCompanies.displayOrder,
       aboutInternship: sessionCompanies.aboutInternship,
@@ -305,7 +305,7 @@ export async function addCompanyToSession(
     await db.insert(sessionCompanies).values({
       sessionId,
       companyId: parsed.data.companyId,
-      internshipDate: parsed.data.internshipDate || null,
+      internshipDates: parsed.data.internshipDates ?? null,
       slotsAvailable: parsed.data.slotsAvailable,
       displayOrder: parsed.data.displayOrder,
       aboutInternship: parsed.data.aboutInternship || null,
@@ -339,7 +339,7 @@ export async function updateSessionCompany(
   await db
     .update(sessionCompanies)
     .set({
-      internshipDate: parsed.data.internshipDate || null,
+      internshipDates: parsed.data.internshipDates ?? null,
       slotsAvailable: parsed.data.slotsAvailable,
       displayOrder: parsed.data.displayOrder,
       aboutInternship: parsed.data.aboutInternship || null,

@@ -64,10 +64,27 @@ export const updateSessionSpeakerSchema = z.object({
   displayOrder: z.coerce.number().int().default(0),
 });
 
+// Parses "2026-05-14, 2026-05-22, 2026-05-28" → ["2026-05-14","2026-05-22","2026-05-28"]
+const datesField = z
+  .string()
+  .optional()
+  .transform((v) => {
+    if (!v) return undefined;
+    const list = v
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return list.length === 0 ? undefined : list;
+  })
+  .refine(
+    (arr) => arr === undefined || arr.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(d).getTime())),
+    { message: "Each date must be in YYYY-MM-DD format" }
+  );
+
 // Adding company to session (link)
 export const addCompanyToSessionSchema = z.object({
   companyId: z.string().uuid(),
-  internshipDate: z.string().optional(),
+  internshipDates: datesField,
   slotsAvailable: z.coerce.number().int().min(1).default(2),
   displayOrder: z.coerce.number().int().default(0),
   aboutInternship: z.string().optional(),
@@ -78,7 +95,7 @@ export const addCompanyToSessionSchema = z.object({
 
 // Updating an existing session_company
 export const updateSessionCompanySchema = z.object({
-  internshipDate: z.string().optional(),
+  internshipDates: datesField,
   slotsAvailable: z.coerce.number().int().min(1).default(2),
   displayOrder: z.coerce.number().int().default(0),
   aboutInternship: z.string().optional(),

@@ -58,8 +58,13 @@ export function LinkCompanyForm({
         </select>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Field label="Internship Date" name="internshipDate" type="date" />
+      <Field
+        label="Internship Date(s)"
+        name="internshipDates"
+        placeholder="2026-05-14, 2026-05-22, 2026-05-28"
+        helpText="One or more dates in YYYY-MM-DD format. Comma-separate multiple dates (e.g. for Samvad Partners' three options)."
+      />
+      <div className="grid grid-cols-2 gap-4">
         <Field
           label="Slots Available"
           name="slotsAvailable"

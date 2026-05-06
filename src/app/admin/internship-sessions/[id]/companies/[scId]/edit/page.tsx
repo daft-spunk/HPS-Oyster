@@ -19,7 +19,7 @@ export default async function EditSessionCompanyPage({
       id: sessionCompanies.id,
       sessionId: sessionCompanies.sessionId,
       companyName: companies.name,
-      internshipDate: sessionCompanies.internshipDate,
+      internshipDates: sessionCompanies.internshipDates,
       slotsAvailable: sessionCompanies.slotsAvailable,
       displayOrder: sessionCompanies.displayOrder,
       aboutInternship: sessionCompanies.aboutInternship,
@@ -44,7 +44,7 @@ export default async function EditSessionCompanyPage({
         sessionId={sessionId}
         sessionCompany={{
           id: row.id,
-          internshipDate: row.internshipDate,
+          internshipDates: row.internshipDates,
           slotsAvailable: row.slotsAvailable,
           displayOrder: row.displayOrder,
           aboutInternship: row.aboutInternship,

@@ -7,7 +7,7 @@ import { Field } from "@/components/admin/Field";
 
 interface SessionCompany {
   id: string;
-  internshipDate: string | null;
+  internshipDates: string[] | null;
   slotsAvailable: number;
   displayOrder: number;
   aboutInternship: string | null;
@@ -35,13 +35,14 @@ export function EditSessionCompanyForm({
 
   return (
     <form action={formAction} className="bg-white border rounded-lg p-6 space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        <Field
-          label="Internship Date"
-          name="internshipDate"
-          type="date"
-          defaultValue={sessionCompany.internshipDate}
-        />
+      <Field
+        label="Internship Date(s)"
+        name="internshipDates"
+        defaultValue={sessionCompany.internshipDates?.join(", ") ?? ""}
+        placeholder="2026-05-14, 2026-05-22, 2026-05-28"
+        helpText="One or more dates in YYYY-MM-DD format. Comma-separate multiple dates."
+      />
+      <div className="grid grid-cols-2 gap-4">
         <Field
           label="Slots Available"
           name="slotsAvailable"
