@@ -85,13 +85,10 @@ export default async function InternshipSessionDetail({
                         : "TBD"}
                     </td>
                     <td className="px-4 py-3">{c.slotsAvailable}</td>
-                    <td
-                      className="px-4 py-3 text-gray-700"
-                      title={`${Number(c.pref1Count)} as 1st preference, ${Number(c.registrationCount)} total picks`}
-                    >
+                    <td className="px-4 py-3 text-gray-700">
                       <span className="font-medium">{Number(c.registrationCount)}</span>
-                      <span className="text-xs text-gray-400 ml-1">
-                        ({Number(c.pref1Count)} as #1)
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({Number(c.pref1Count)} as #1, {Number(c.pref2Count)} as #2, {Number(c.pref3Count)} as #3)
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{c.displayOrder}</td>
