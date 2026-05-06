@@ -15,7 +15,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-60 bg-[#132E5A] text-white flex flex-col">
-        <div className="px-5 py-5 border-b border-white/10">
+        <div className="bg-white px-5 py-4 border-b border-white/10">
           <Link href="/admin" className="block">
             <Image
               src="/assets/logo.png"
@@ -26,7 +26,9 @@ export default async function AdminLayout({
               style={{ width: "auto", height: "44px" }}
             />
           </Link>
-          <p className="text-xs text-blue-200 mt-2">Admin Panel</p>
+        </div>
+        <div className="px-5 py-3 border-b border-white/10">
+          <p className="text-xs text-blue-200">Admin Panel</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-6 text-sm">
