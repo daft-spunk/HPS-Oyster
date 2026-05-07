@@ -1,5 +1,6 @@
 import { getTalkRegistrations, getSessionWithSpeakers } from "@/lib/actions/talks";
 import { isAuthenticated } from "@/lib/auth";
+import { formatIstForCsv } from "@/lib/format";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -33,7 +34,7 @@ export async function GET(
 
   const rows = registrations.map((r) =>
     [
-      r.createdAt ? new Date(r.createdAt).toISOString() : "",
+      formatIstForCsv(r.createdAt),
       r.studentName,
       r.classSection,
       r.rollNumber,

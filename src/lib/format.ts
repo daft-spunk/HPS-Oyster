@@ -47,6 +47,21 @@ export function istLocalInputToUtc(value: string | null | undefined): Date | nul
 // ─── Internship date cutoff helpers ────────────────────────────────────────
 // "Cutoff" = stop accepting registrations N days before each internship date.
 
+/** Format a UTC Date as IST wall-clock "YYYY-MM-DD HH:MM:SS" — used for CSV exports */
+export function formatIstForCsv(value: Date | string | null | undefined): string {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (isNaN(d.getTime())) return "";
+  const shifted = new Date(d.getTime() + IST_OFFSET_MIN * 60_000);
+  const yyyy = shifted.getUTCFullYear();
+  const mm = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(shifted.getUTCDate()).padStart(2, "0");
+  const hh = String(shifted.getUTCHours()).padStart(2, "0");
+  const mi = String(shifted.getUTCMinutes()).padStart(2, "0");
+  const ss = String(shifted.getUTCSeconds()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+}
+
 /** Is this internship date still open for registration today? */
 export function isDateOpen(internshipDate: string | Date, cutoffDays: number): boolean {
   const d = typeof internshipDate === "string" ? new Date(internshipDate) : internshipDate;

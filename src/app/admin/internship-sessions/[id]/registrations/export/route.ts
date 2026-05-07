@@ -1,5 +1,6 @@
 import { getInternshipRegistrations, getInternshipSessionWithCompanies } from "@/lib/actions/internships";
 import { isAuthenticated } from "@/lib/auth";
+import { formatIstForCsv } from "@/lib/format";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -37,7 +38,7 @@ export async function GET(
 
   const rows = registrations.map((r) =>
     [
-      r.createdAt ? new Date(r.createdAt).toISOString() : "",
+      formatIstForCsv(r.createdAt),
       r.studentName,
       r.classSection,
       r.rollNumber,
@@ -45,12 +46,12 @@ export async function GET(
       r.parentEmail,
       r.parentPhone,
       r.interests || "",
-      r.pref1Company,
-      r.pref1Reason,
-      r.pref2Company,
-      r.pref2Reason,
-      r.pref3Company,
-      r.pref3Reason,
+      r.pref1Company || "",
+      r.pref1Reason || "",
+      r.pref2Company || "",
+      r.pref2Reason || "",
+      r.pref3Company || "",
+      r.pref3Reason || "",
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(",")
