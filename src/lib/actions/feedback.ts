@@ -11,21 +11,39 @@ import {
 } from "@/lib/db/schema";
 import {
   feedbackLookupSchema,
-  feedbackSubmitSchema,
   feedbackCompanyEntrySchema,
+  ORG_SATISFACTION_OPTIONS,
+  ENCOURAGE_MORE_OPTIONS,
 } from "@/lib/validators";
 import { isInternshipOver } from "@/lib/format";
 import { isAuthenticated } from "@/lib/auth";
-import { eq, sql, inArray } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-// ─── Types returned to the public form ────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────
+
+export interface BoardCompany {
+  sessionCompanyId: string;
+  name: string;
+  sector: string;
+  internshipDates: string[] | null;
+  feedback: {
+    internshipDate: string | null;
+    interactivityRating: number;
+    speakerRating: number;
+    keyTakeaway: string;
+    viewChangeLevel: string;
+    learningValue: string;
+    subjectClarity: string;
+    updatedAt: Date;
+  } | null;
+}
 
 export type FeedbackPhase =
   | { phase: "lookup"; error?: string }
   | {
-      phase: "fill";
+      phase: "board";
       sessionId: string;
       registration: {
         id: string;
@@ -36,29 +54,24 @@ export type FeedbackPhase =
         parentEmail: string;
         parentPhone: string;
       };
-      eligibleCompanies: Array<{
-        sessionCompanyId: string;
-        name: string;
-        sector: string;
-        internshipDates: string[] | null;
-      }>;
-      prefill: Record<string, z.infer<typeof feedbackCompanyEntrySchema>>;
-      sessionPrefill: {
+      eligibleCompanies: BoardCompany[];
+      overall: {
         organizationSatisfaction: string | null;
         encourageMore: string | null;
         likedAndBetter: string | null;
         suggestions: string | null;
+        updatedAt: Date | null;
       };
       error?: string;
-    }
-  | { phase: "done"; studentName: string };
+      flash?: string;
+    };
 
-// ─── PUBLIC: lookup registration + show portal ───────────────────────────
+// ─── Helper: build the board view ─────────────────────────────────────────
 
-async function buildFillPhase(
+async function buildBoard(
   sessionId: string,
   registrationId: string,
-  errorMsg?: string
+  flashOrError?: { error?: string; flash?: string }
 ): Promise<FeedbackPhase> {
   const [reg] = await db
     .select()
@@ -77,36 +90,35 @@ async function buildFillPhase(
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(sessionCompanies.sessionId, sessionId));
 
-  const eligibleCompanies = sessionCompaniesAll
-    .filter((c) => isInternshipOver(c.internshipDates ?? null))
-    .map((c) => ({
-      ...c,
-      internshipDates: (c.internshipDates ?? null) as string[] | null,
-    }));
+  const eligible = sessionCompaniesAll.filter((c) => isInternshipOver(c.internshipDates ?? null));
 
-  // Pull any prior feedback so the form is pre-filled if they're editing
-  const existingPerCompany = await db
+  const existing = await db
     .select()
     .from(internshipFeedbackCompany)
     .where(eq(internshipFeedbackCompany.registrationId, registrationId));
-  const prefill: FeedbackPhase extends { phase: "fill"; prefill: infer P }
-    ? P
-    : Record<string, z.infer<typeof feedbackCompanyEntrySchema>> = {} as Record<
-    string,
-    z.infer<typeof feedbackCompanyEntrySchema>
-  >;
-  for (const row of existingPerCompany) {
-    prefill[row.sessionCompanyId] = {
-      sessionCompanyId: row.sessionCompanyId,
-      internshipDate: row.internshipDate ?? undefined,
-      interactivityRating: row.interactivityRating,
-      speakerRating: row.speakerRating,
-      keyTakeaway: row.keyTakeaway,
-      viewChangeLevel: row.viewChangeLevel as never,
-      learningValue: row.learningValue as never,
-      subjectClarity: row.subjectClarity as never,
+  const byScId = new Map(existing.map((e) => [e.sessionCompanyId, e]));
+
+  const eligibleCompanies: BoardCompany[] = eligible.map((c) => {
+    const f = byScId.get(c.sessionCompanyId);
+    return {
+      sessionCompanyId: c.sessionCompanyId,
+      name: c.name,
+      sector: c.sector,
+      internshipDates: (c.internshipDates ?? null) as string[] | null,
+      feedback: f
+        ? {
+            internshipDate: f.internshipDate ?? null,
+            interactivityRating: f.interactivityRating,
+            speakerRating: f.speakerRating,
+            keyTakeaway: f.keyTakeaway,
+            viewChangeLevel: f.viewChangeLevel,
+            learningValue: f.learningValue,
+            subjectClarity: f.subjectClarity,
+            updatedAt: f.updatedAt,
+          }
+        : null,
     };
-  }
+  });
 
   const [existingSession] = await db
     .select()
@@ -114,7 +126,7 @@ async function buildFillPhase(
     .where(eq(internshipFeedbackSession.registrationId, registrationId));
 
   return {
-    phase: "fill",
+    phase: "board",
     sessionId,
     registration: {
       id: reg.id,
@@ -126,22 +138,24 @@ async function buildFillPhase(
       parentPhone: reg.parentPhone,
     },
     eligibleCompanies,
-    prefill,
-    sessionPrefill: {
+    overall: {
       organizationSatisfaction: existingSession?.organizationSatisfaction ?? null,
       encourageMore: existingSession?.encourageMore ?? null,
       likedAndBetter: existingSession?.likedAndBetter ?? null,
       suggestions: existingSession?.suggestions ?? null,
+      updatedAt: existingSession?.updatedAt ?? null,
     },
-    error: errorMsg,
+    error: flashOrError?.error,
+    flash: flashOrError?.flash,
   };
 }
+
+// ─── Server action ────────────────────────────────────────────────────────
 
 export async function feedbackEntry(
   _prev: FeedbackPhase | null,
   formData: FormData
 ): Promise<FeedbackPhase> {
-  // Two stages share this action; differentiate by intent field.
   const intent = (formData.get("intent") as string | null) || "lookup";
 
   if (intent === "lookup") {
@@ -149,8 +163,6 @@ export async function feedbackEntry(
     if (!parsed.success) {
       return { phase: "lookup", error: parsed.error.issues[0].message };
     }
-    // Find a registration in this session that matches class + roll. There may
-    // be multiple (we kept duplicates intentionally) — pick the latest.
     const matches = await db
       .select()
       .from(internshipRegistrations)
@@ -169,108 +181,69 @@ export async function feedbackEntry(
     const latest = matches.sort(
       (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
     )[0];
-    return buildFillPhase(parsed.data.sessionId, latest.id);
+    return buildBoard(parsed.data.sessionId, latest.id);
   }
 
-  if (intent === "submit") {
-    // Re-parse the multi-row form
-    const data = Object.fromEntries(formData.entries());
-    const registrationId = (data.registrationId as string) || "";
-    const sessionId = (data.sessionId as string) || "";
+  if (intent === "submit_company") {
+    const sessionId = (formData.get("sessionId") as string) || "";
+    const registrationId = (formData.get("registrationId") as string) || "";
+    const sessionCompanyId = (formData.get("sessionCompanyId") as string) || "";
 
-    // Re-read company IDs that the user ticked. We expect inputs like
-    // ticked_<scId>=on, plus per-row fields prefixed by sc_<scId>_*
-    const tickedIds: string[] = [];
-    for (const key of formData.keys()) {
-      if (key.startsWith("ticked_") && formData.get(key)) {
-        tickedIds.push(key.replace("ticked_", ""));
-      }
-    }
-
-    const perCompany = tickedIds.map((scId) => ({
-      sessionCompanyId: scId,
-      internshipDate: (formData.get(`sc_${scId}_date`) as string) || undefined,
-      interactivityRating: Number(formData.get(`sc_${scId}_interactivity`) || 0),
-      speakerRating: Number(formData.get(`sc_${scId}_speaker`) || 0),
-      keyTakeaway: ((formData.get(`sc_${scId}_takeaway`) as string) || "").trim(),
-      viewChangeLevel: formData.get(`sc_${scId}_viewChange`) as string,
-      learningValue: formData.get(`sc_${scId}_learning`) as string,
-      subjectClarity: formData.get(`sc_${scId}_clarity`) as string,
-    }));
-
-    const parsed = feedbackSubmitSchema.safeParse({
-      registrationId,
-      perCompany,
-      organizationSatisfaction: data.organizationSatisfaction,
-      encourageMore: data.encourageMore,
-      likedAndBetter: ((data.likedAndBetter as string) || "").trim(),
-      suggestions: ((data.suggestions as string) || "").trim(),
+    const parsed = feedbackCompanyEntrySchema.safeParse({
+      sessionCompanyId,
+      internshipDate: (formData.get("internshipDate") as string) || undefined,
+      interactivityRating: Number(formData.get("interactivityRating") || 0),
+      speakerRating: Number(formData.get("speakerRating") || 0),
+      keyTakeaway: ((formData.get("keyTakeaway") as string) || "").trim(),
+      viewChangeLevel: formData.get("viewChangeLevel"),
+      learningValue: formData.get("learningValue"),
+      subjectClarity: formData.get("subjectClarity"),
     });
-
     if (!parsed.success) {
-      return buildFillPhase(sessionId, registrationId, parsed.error.issues[0].message);
+      return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
     }
 
-    // Validate every ticked company is actually past-date and belongs to this session
-    const valid = await db
+    // Validate the company belongs to this session and is past-date
+    const [sc] = await db
       .select({
         id: sessionCompanies.id,
-        internshipDates: sessionCompanies.internshipDates,
         sessionId: sessionCompanies.sessionId,
+        internshipDates: sessionCompanies.internshipDates,
       })
       .from(sessionCompanies)
-      .where(inArray(sessionCompanies.id, parsed.data.perCompany.map((p) => p.sessionCompanyId)));
-    const byId = new Map(valid.map((v) => [v.id, v]));
-    for (const c of parsed.data.perCompany) {
-      const v = byId.get(c.sessionCompanyId);
-      if (!v || v.sessionId !== sessionId) {
-        return buildFillPhase(sessionId, registrationId, "Invalid company selection");
-      }
-      if (!isInternshipOver(v.internshipDates)) {
-        return buildFillPhase(
-          sessionId,
-          registrationId,
-          "Feedback can only be given for internships that have already happened"
-        );
-      }
+      .where(eq(sessionCompanies.id, sessionCompanyId));
+    if (!sc || sc.sessionId !== sessionId) {
+      return buildBoard(sessionId, registrationId, { error: "Invalid internship" });
     }
-
-    // Upsert. Delete-then-insert for per-company rows; insert-on-conflict for the session row.
-    await db
-      .delete(internshipFeedbackCompany)
-      .where(eq(internshipFeedbackCompany.registrationId, registrationId));
-    if (parsed.data.perCompany.length > 0) {
-      await db.insert(internshipFeedbackCompany).values(
-        parsed.data.perCompany.map((c) => ({
-          registrationId,
-          sessionCompanyId: c.sessionCompanyId,
-          internshipDate: c.internshipDate || null,
-          interactivityRating: c.interactivityRating,
-          speakerRating: c.speakerRating,
-          keyTakeaway: c.keyTakeaway,
-          viewChangeLevel: c.viewChangeLevel,
-          learningValue: c.learningValue,
-          subjectClarity: c.subjectClarity,
-        }))
-      );
+    if (!isInternshipOver(sc.internshipDates)) {
+      return buildBoard(sessionId, registrationId, {
+        error: "Feedback can only be given for internships that have already happened",
+      });
     }
 
     await db
-      .insert(internshipFeedbackSession)
+      .insert(internshipFeedbackCompany)
       .values({
         registrationId,
-        organizationSatisfaction: parsed.data.organizationSatisfaction,
-        encourageMore: parsed.data.encourageMore,
-        likedAndBetter: parsed.data.likedAndBetter,
-        suggestions: parsed.data.suggestions,
+        sessionCompanyId,
+        internshipDate: parsed.data.internshipDate || null,
+        interactivityRating: parsed.data.interactivityRating,
+        speakerRating: parsed.data.speakerRating,
+        keyTakeaway: parsed.data.keyTakeaway,
+        viewChangeLevel: parsed.data.viewChangeLevel,
+        learningValue: parsed.data.learningValue,
+        subjectClarity: parsed.data.subjectClarity,
       })
       .onConflictDoUpdate({
-        target: internshipFeedbackSession.registrationId,
+        target: [internshipFeedbackCompany.registrationId, internshipFeedbackCompany.sessionCompanyId],
         set: {
-          organizationSatisfaction: parsed.data.organizationSatisfaction,
-          encourageMore: parsed.data.encourageMore,
-          likedAndBetter: parsed.data.likedAndBetter,
-          suggestions: parsed.data.suggestions,
+          internshipDate: parsed.data.internshipDate || null,
+          interactivityRating: parsed.data.interactivityRating,
+          speakerRating: parsed.data.speakerRating,
+          keyTakeaway: parsed.data.keyTakeaway,
+          viewChangeLevel: parsed.data.viewChangeLevel,
+          learningValue: parsed.data.learningValue,
+          subjectClarity: parsed.data.subjectClarity,
           updatedAt: new Date(),
         },
       });
@@ -279,21 +252,57 @@ export async function feedbackEntry(
     revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
     revalidatePath(`/admin/internship-sessions/${sessionId}`);
 
-    const [reg] = await db
-      .select({ studentName: internshipRegistrations.studentName })
-      .from(internshipRegistrations)
-      .where(eq(internshipRegistrations.id, registrationId));
-    return { phase: "done", studentName: reg?.studentName ?? "" };
+    return buildBoard(sessionId, registrationId, {
+      flash: "Feedback saved. Thanks!",
+    });
+  }
+
+  if (intent === "submit_overall") {
+    const sessionId = (formData.get("sessionId") as string) || "";
+    const registrationId = (formData.get("registrationId") as string) || "";
+
+    const schema = z.object({
+      organizationSatisfaction: z.enum(ORG_SATISFACTION_OPTIONS),
+      encourageMore: z.enum(ENCOURAGE_MORE_OPTIONS),
+      likedAndBetter: z.string().min(1, "Please share what you liked and what could be better"),
+      suggestions: z.string().min(1, "Please share at least one suggestion"),
+    });
+    const parsed = schema.safeParse({
+      organizationSatisfaction: formData.get("organizationSatisfaction"),
+      encourageMore: formData.get("encourageMore"),
+      likedAndBetter: ((formData.get("likedAndBetter") as string) || "").trim(),
+      suggestions: ((formData.get("suggestions") as string) || "").trim(),
+    });
+    if (!parsed.success) {
+      return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
+    }
+
+    await db
+      .insert(internshipFeedbackSession)
+      .values({
+        registrationId,
+        ...parsed.data,
+      })
+      .onConflictDoUpdate({
+        target: internshipFeedbackSession.registrationId,
+        set: { ...parsed.data, updatedAt: new Date() },
+      });
+
+    revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
+    revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
+    revalidatePath(`/admin/internship-sessions/${sessionId}`);
+
+    return buildBoard(sessionId, registrationId, {
+      flash: "Overall rating saved. Thanks!",
+    });
   }
 
   return { phase: "lookup", error: "Unknown action" };
 }
 
-// ─── PUBLIC: helper to find an active session that has at least one
-// internship in the past (used to decide whether the /feedback page is open) ─
+// ─── Public: any session with at least one past-date internship? ──────────
 
 export async function getFeedbackEligibleSession() {
-  // Newest active session, regardless of class
   const [s] = await db
     .select()
     .from(internshipSessions)
@@ -303,16 +312,15 @@ export async function getFeedbackEligibleSession() {
     .select({ internshipDates: sessionCompanies.internshipDates })
     .from(sessionCompanies)
     .where(eq(sessionCompanies.sessionId, s.id));
-  const anyOver = cs.some((c) => isInternshipOver(c.internshipDates));
-  return anyOver ? s : null;
+  return cs.some((c) => isInternshipOver(c.internshipDates)) ? s : null;
 }
 
-// ─── ADMIN ────────────────────────────────────────────────────────────────
+// ─── Admin queries (unchanged) ─────────────────────────────────────────────
 
 export async function getFeedbackForSession(sessionId: string) {
   if (!(await isAuthenticated())) throw new Error("Unauthorized");
 
-  const regs = await db
+  return db
     .select({
       id: internshipRegistrations.id,
       studentName: internshipRegistrations.studentName,
@@ -339,8 +347,6 @@ export async function getFeedbackForSession(sessionId: string) {
     .from(internshipRegistrations)
     .where(eq(internshipRegistrations.sessionId, sessionId))
     .orderBy(sql`internship_registrations.created_at DESC`);
-
-  return regs;
 }
 
 export async function getFeedbackDetail(registrationId: string) {
