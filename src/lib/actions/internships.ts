@@ -16,7 +16,7 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { istLocalInputToUtc, anyDateOpen } from "@/lib/format";
+import { istLocalInputToUtc, anyDateOpen, slugify } from "@/lib/format";
 
 // ─── PUBLIC ─────────────────────────────────────────────
 
@@ -40,6 +40,18 @@ export async function getActiveInternshipSessions() {
       .where(eq(internshipSessions.isActive, true));
   } catch {
     return [];
+  }
+}
+
+export async function getInternshipSessionBySlug(slug: string) {
+  try {
+    const [s] = await db
+      .select()
+      .from(internshipSessions)
+      .where(eq(internshipSessions.slug, slug));
+    return s ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -241,6 +253,28 @@ export async function getAllInternshipSessions() {
     .orderBy(desc(internshipSessions.createdAt));
 }
 
+async function ensureUniqueSlug(base: string, ignoreId?: string): Promise<string> {
+  const safe = slugify(base);
+  let slug = safe;
+  let n = 1;
+  // Loop until we find a slug not yet used by another row
+  // (small N, safe for an admin operation)
+  while (true) {
+    const existing = await db
+      .select({ id: internshipSessions.id })
+      .from(internshipSessions)
+      .where(eq(internshipSessions.slug, slug));
+    if (
+      existing.length === 0 ||
+      (ignoreId && existing.every((e) => e.id === ignoreId))
+    ) {
+      return slug;
+    }
+    n++;
+    slug = `${safe}-${n}`.slice(0, 40);
+  }
+}
+
 export async function createInternshipSession(
   _prev: { error?: string } | null,
   formData: FormData
@@ -248,6 +282,8 @@ export async function createInternshipSession(
   if (!(await isAuthenticated())) throw new Error("Unauthorized");
   const parsed = internshipSessionSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const slug = await ensureUniqueSlug(parsed.data.slug || slugify(parsed.data.title));
 
   const [created] = await db
     .insert(internshipSessions)
@@ -257,6 +293,7 @@ export async function createInternshipSession(
       targetClass: parsed.data.targetClass,
       maxPreferences: parsed.data.maxPreferences,
       registrationCutoffDays: parsed.data.registrationCutoffDays,
+      slug,
       description: parsed.data.description || null,
       regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
     })
@@ -275,18 +312,24 @@ export async function updateInternshipSession(
   const parsed = internshipSessionSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Only change slug if admin explicitly provides one (don't auto-overwrite)
+  const updateFields: Record<string, unknown> = {
+    title: parsed.data.title,
+    editionLabel: parsed.data.editionLabel,
+    targetClass: parsed.data.targetClass,
+    maxPreferences: parsed.data.maxPreferences,
+    registrationCutoffDays: parsed.data.registrationCutoffDays,
+    description: parsed.data.description || null,
+    regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
+    updatedAt: new Date(),
+  };
+  if (parsed.data.slug) {
+    updateFields.slug = await ensureUniqueSlug(parsed.data.slug, sessionId);
+  }
+
   await db
     .update(internshipSessions)
-    .set({
-      title: parsed.data.title,
-      editionLabel: parsed.data.editionLabel,
-      targetClass: parsed.data.targetClass,
-      maxPreferences: parsed.data.maxPreferences,
-      registrationCutoffDays: parsed.data.registrationCutoffDays,
-      description: parsed.data.description || null,
-      regDeadline: istLocalInputToUtc(parsed.data.regDeadline ?? null),
-      updatedAt: new Date(),
-    })
+    .set(updateFields)
     .where(eq(internshipSessions.id, sessionId));
 
   revalidatePath("/admin/internship-sessions");

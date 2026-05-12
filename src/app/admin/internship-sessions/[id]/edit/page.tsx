@@ -36,6 +36,7 @@ export default async function EditInternshipSessionPage({
           targetClass: session.targetClass,
           maxPreferences: session.maxPreferences,
           registrationCutoffDays: session.registrationCutoffDays,
+          slug: session.slug,
           description: session.description,
           regDeadline: utcToIstLocalInput(session.regDeadline),
         }}

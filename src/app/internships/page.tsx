@@ -88,7 +88,7 @@ export default async function InternshipsPage({
               — it&apos;s required for the participation certificate.
             </span>
             <Link
-              href={`/feedback?session=${session.id}`}
+              href={`/feedback/${session.slug}`}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm whitespace-nowrap"
             >
               Give Feedback →

@@ -118,6 +118,7 @@ export const internshipSessions = pgTable("internship_sessions", {
   targetClass: targetClassEnum("target_class").notNull().default("10"),
   maxPreferences: integer("max_preferences").notNull().default(3),
   registrationCutoffDays: integer("registration_cutoff_days").notNull().default(2),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(false),
   regOpen: boolean("reg_open").notNull().default(true),

@@ -27,6 +27,12 @@ export default function NewInternshipSessionPage() {
       <form action={formAction} className="bg-white border rounded-lg p-6 space-y-4">
         <Field label="Title" name="title" required placeholder="Summer 2026 Internships" />
         <Field label="Edition Label" name="editionLabel" required placeholder="Edition 3" />
+        <Field
+          label="URL slug"
+          name="slug"
+          placeholder="summer-2026"
+          helpText="Used in the feedback link (hpsoyster.com/feedback/<slug>). Leave blank to auto-generate from the title."
+        />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Target Class <span className="text-red-500">*</span>

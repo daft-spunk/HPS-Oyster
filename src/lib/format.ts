@@ -80,6 +80,18 @@ export function anyDateOpen(
   return dates.some((d) => isDateOpen(d, cutoffDays));
 }
 
+/** Slugify a string for use in URLs. Lowercases, replaces non-alnum runs
+ * with '-', trims leading/trailing hyphens, caps length. */
+export function slugify(input: string, max = 40): string {
+  const s = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, max)
+    .replace(/^-+|-+$/g, "");
+  return s || "session";
+}
+
 /** Has every date for this internship already passed (used to decide if it's
  * eligible for feedback)? Returns false if no dates set (we don't know yet). */
 export function isInternshipOver(

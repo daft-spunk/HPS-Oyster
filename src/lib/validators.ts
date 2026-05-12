@@ -42,6 +42,13 @@ export const internshipSessionSchema = z.object({
   targetClass: z.enum(["9", "10", "9_10"]),
   maxPreferences: z.coerce.number().int().min(1).max(3).default(3),
   registrationCutoffDays: z.coerce.number().int().min(0).max(60).default(2),
+  slug: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.trim().toLowerCase() : ""))
+    .refine((v) => v === "" || /^[a-z0-9-]{1,40}$/.test(v), {
+      message: "Slug can only contain lowercase letters, numbers, and hyphens",
+    }),
   description: z.string().optional(),
   regDeadline: z.string().optional(),
 });

@@ -38,6 +38,23 @@ export default async function FeedbackOverviewPage({
         }
       />
 
+      <div className="mb-6 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="font-medium">Public feedback link</p>
+          <p className="text-blue-800 font-mono break-all">
+            https://hpsoyster.com/feedback/{session.slug}
+          </p>
+        </div>
+        <a
+          href={`/feedback/${session.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 whitespace-nowrap"
+        >
+          Open ↗
+        </a>
+      </div>
+
       {totalRegs === 0 ? (
         <p className="text-gray-500 bg-white border rounded-lg p-12 text-center">
           No registrations in this session yet.

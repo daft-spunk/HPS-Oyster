@@ -12,6 +12,7 @@ interface Session {
   targetClass: "9" | "10" | "9_10";
   maxPreferences: number;
   registrationCutoffDays: number;
+  slug: string;
   description: string | null;
   regDeadline: string | null;
 }
@@ -35,6 +36,12 @@ export function EditInternshipSessionForm({ session }: { session: Session }) {
         name="editionLabel"
         required
         defaultValue={session.editionLabel}
+      />
+      <Field
+        label="URL slug"
+        name="slug"
+        defaultValue={session.slug}
+        helpText={`Feedback link: hpsoyster.com/feedback/${session.slug || "<slug>"}`}
       />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
