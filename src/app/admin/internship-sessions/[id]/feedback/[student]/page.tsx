@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { getFeedbackDetail } from "@/lib/actions/feedback";
+import { getFeedbackDetailForStudent } from "@/lib/actions/feedback";
 import { PageHeader } from "@/components/admin/PageHeader";
 
 const VIEW_LABELS: Record<string, string> = {
@@ -40,18 +40,21 @@ const ENCOURAGE_LABELS: Record<string, string> = {
 export default async function FeedbackDetailPage({
   params,
 }: {
-  params: Promise<{ id: string; regId: string }>;
+  params: Promise<{ id: string; student: string }>;
 }) {
   if (!(await isAuthenticated())) redirect("/admin/login");
-  const { id, regId } = await params;
-  const detail = await getFeedbackDetail(regId);
-  if (!detail || detail.registration.sessionId !== id) notFound();
+  const { id, student } = await params;
+  const decoded = decodeURIComponent(student);
+  const [classSection, rollNumber] = decoded.split("__");
+  if (!classSection || !rollNumber) notFound();
+  const detail = await getFeedbackDetailForStudent(id, classSection, rollNumber);
+  if (!detail) notFound();
 
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title={`Feedback – ${detail.registration.studentName}`}
-        subtitle={`${detail.registration.classSection} · Roll ${detail.registration.rollNumber}`}
+        title={`Feedback – ${detail.student.studentName}`}
+        subtitle={`${detail.student.classSection} · Roll ${detail.student.rollNumber}`}
         backHref={`/admin/internship-sessions/${id}/feedback`}
         backLabel="Back to Feedback"
       />
@@ -78,11 +81,27 @@ export default async function FeedbackDetailPage({
                 </p>
               )}
               <dl className="grid sm:grid-cols-2 gap-3 text-sm">
-                <Row label="Interactivity">{c.interactivityRating}/5</Row>
-                <Row label="Coaches/Speakers">{c.speakerRating}/5</Row>
-                <Row label="View change">{VIEW_LABELS[c.viewChangeLevel] ?? c.viewChangeLevel}</Row>
-                <Row label="Learning value">{LEARNING_LABELS[c.learningValue] ?? c.learningValue}</Row>
-                <Row label="Subject clarity">{CLARITY_LABELS[c.subjectClarity] ?? c.subjectClarity}</Row>
+                {c.interactivityRating != null && (
+                  <Row label="Interactivity">{c.interactivityRating}/5</Row>
+                )}
+                {c.speakerRating != null && (
+                  <Row label="Coaches/Speakers">{c.speakerRating}/5</Row>
+                )}
+                {c.viewChangeLevel && (
+                  <Row label="View change">
+                    {VIEW_LABELS[c.viewChangeLevel] ?? c.viewChangeLevel}
+                  </Row>
+                )}
+                {c.learningValue && (
+                  <Row label="Learning value">
+                    {LEARNING_LABELS[c.learningValue] ?? c.learningValue}
+                  </Row>
+                )}
+                {c.subjectClarity && (
+                  <Row label="Subject clarity">
+                    {CLARITY_LABELS[c.subjectClarity] ?? c.subjectClarity}
+                  </Row>
+                )}
                 {c.organizationSatisfaction && (
                   <Row label="Org satisfaction">
                     {ORG_LABELS[c.organizationSatisfaction] ?? c.organizationSatisfaction}
@@ -94,12 +113,14 @@ export default async function FeedbackDetailPage({
                   </Row>
                 )}
               </dl>
-              <div className="mt-3">
-                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                  Key takeaway
-                </p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.keyTakeaway}</p>
-              </div>
+              {c.keyTakeaway && (
+                <div className="mt-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                    Key takeaway
+                  </p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.keyTakeaway}</p>
+                </div>
+              )}
               {c.likedAndBetter && (
                 <div className="mt-3">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">

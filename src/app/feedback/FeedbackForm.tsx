@@ -41,10 +41,7 @@ const ENCOURAGE = [
   { value: "definitely_not", label: "Definitely will not" },
 ];
 
-// What stage of the per-internship wizard is the student on?
 type SubStep = "personal" | "section2" | "section3";
-
-// Client view state
 type View = { kind: "board" } | { kind: "wizard"; scId: string; subStep: SubStep };
 
 function isCompanyComplete(c: BoardCompany): boolean {
@@ -56,41 +53,43 @@ function isCompanyComplete(c: BoardCompany): boolean {
   );
 }
 
-function defaultSubStep(c: BoardCompany | undefined): SubStep {
+function defaultSubStep(c: BoardCompany | undefined, hasStudent: boolean): SubStep {
   if (!c) return "personal";
-  if (!c.feedback) return "personal";
-  // If section 2 is filled but section 3 isn't, jump to section 3
+  // No personal info yet → personal step
+  if (!hasStudent) return "personal";
+  // Row exists but section 2 not filled → section 2
+  if (!c.feedback) return "section2";
+  if (c.feedback.interactivityRating === null) return "section2";
   if (!c.feedback.organizationSatisfaction) return "section3";
-  // All done — start at personal so editing always lets you confirm details
+  // All done — show personal so they can edit if needed
   return "personal";
 }
 
-export function FeedbackForm({ sessionId }: { sessionId: string }) {
-  const [state, formAction, pending] = useActionState<FeedbackPhase | null, FormData>(
+export function FeedbackForm({
+  sessionId,
+  initialBoard,
+}: {
+  sessionId: string;
+  initialBoard: FeedbackPhase;
+}) {
+  const [state, formAction, pending] = useActionState<FeedbackPhase, FormData>(
     feedbackEntry,
-    null
+    initialBoard
   );
   const [view, setView] = useState<View>({ kind: "board" });
 
-  // Advance the wizard after each successful submit. Use refs to consume
-  // each server response only once so we don't re-advance on subsequent
-  // unrelated re-renders.
   const lastConsumedRef = useRef<{ scId?: string; step?: string } | null>(null);
   useEffect(() => {
-    if (state?.phase !== "board" || state.error) return;
-    if (!state.lastSubmittedScId || !state.lastSubmittedStep) return;
+    if (state.error || !state.lastSubmittedScId || !state.lastSubmittedStep) return;
     if (view.kind !== "wizard") return;
     if (state.lastSubmittedScId !== view.scId) return;
-
     const sig = { scId: state.lastSubmittedScId, step: state.lastSubmittedStep };
     if (
       lastConsumedRef.current?.scId === sig.scId &&
       lastConsumedRef.current?.step === sig.step
-    ) {
-      return; // already handled this server response
-    }
+    )
+      return;
     lastConsumedRef.current = sig;
-
     if (state.lastSubmittedStep === "personal") {
       setView({ kind: "wizard", scId: view.scId, subStep: "section2" });
     } else if (state.lastSubmittedStep === "section2") {
@@ -99,54 +98,6 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
       setView({ kind: "board" });
     }
   }, [state, view]);
-
-  // ── Lookup phase ─────────────────────────────────────────────────────
-  if (!state || state.phase === "lookup") {
-    return (
-      <form action={formAction} className="bg-white border rounded-lg p-6 space-y-4">
-        <input type="hidden" name="intent" value="lookup" />
-        <input type="hidden" name="sessionId" value={sessionId} />
-        <h2 className="text-lg font-bold">Verify your details</h2>
-        <p className="text-sm text-gray-600">
-          Enter the class and roll number you used during registration.
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Class / Section <span className="text-red-500">*</span>
-            </label>
-            <input
-              name="classSection"
-              required
-              placeholder="e.g. 10D"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Roll Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              name="rollNumber"
-              required
-              placeholder="e.g. 22"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-        </div>
-        {state?.phase === "lookup" && state.error && (
-          <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{state.error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
-        >
-          {pending ? "Looking up..." : "Continue"}
-        </button>
-      </form>
-    );
-  }
 
   // ── Per-internship wizard ───────────────────────────────────────────
   if (view.kind === "wizard") {
@@ -206,13 +157,15 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white border rounded-lg p-5">
-        <p className="text-sm text-gray-500">Welcome,</p>
-        <h2 className="text-xl font-bold">{state.registration.studentName}</h2>
-        <p className="text-xs text-gray-500 mt-1">
-          {state.registration.classSection} · Roll {state.registration.rollNumber}
-        </p>
-      </div>
+      {state.currentStudent && (
+        <div className="bg-white border rounded-lg p-5">
+          <p className="text-sm text-gray-500">Hi,</p>
+          <h2 className="text-xl font-bold">{state.currentStudent.studentName}</h2>
+          <p className="text-xs text-gray-500 mt-1">
+            {state.currentStudent.classSection} · Roll {state.currentStudent.rollNumber}
+          </p>
+        </div>
+      )}
 
       {state.flash && (
         <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
@@ -226,20 +179,24 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
             🎉 All feedback complete
           </p>
           <p className="text-emerald-700 text-sm">
-            You&apos;re eligible for the participation certificate. You can still
-            update any internship&apos;s feedback if you&apos;d like.
+            You&apos;re eligible for the participation certificate.
           </p>
         </div>
       )}
 
       <div className="bg-white border rounded-lg overflow-hidden">
         <div className="px-5 py-3 border-b bg-gray-50">
-          <h3 className="font-semibold text-sm text-gray-700">Your internships</h3>
+          <h3 className="font-semibold text-sm text-gray-700">Pick an internship</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Pick the internships your child actually attended and fill out feedback
-            for each. {state.eligibleCompanies.length === 0
-              ? "None have happened yet."
-              : `${completed} of ${state.eligibleCompanies.length} complete.`}
+            Click &quot;Give feedback&quot; on the internships your child actually
+            attended.{" "}
+            {state.eligibleCompanies.length === 0
+              ? "None of the internships in this session have happened yet."
+              : state.currentStudent
+              ? `${completed} of ${state.eligibleCompanies.length} complete.`
+              : `${state.eligibleCompanies.length} internship${
+                  state.eligibleCompanies.length === 1 ? "" : "s"
+                } available.`}
           </p>
         </div>
         {state.eligibleCompanies.length === 0 ? (
@@ -251,7 +208,7 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
             {state.eligibleCompanies.map((c) => {
               const complete = isCompanyComplete(c);
               const inProgress = !!c.feedback && !complete;
-              const startStep = defaultSubStep(c);
+              const startStep = defaultSubStep(c, !!state.currentStudent);
               return (
                 <li key={c.sessionCompanyId} className="px-5 py-4 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
@@ -353,6 +310,23 @@ function WizardHeader({
   );
 }
 
+// ─── Hidden student fields (carried in every step's submit) ──────────────
+
+function HiddenStudent({ state }: { state: FeedbackPhase }) {
+  const s = state.currentStudent;
+  if (!s) return null;
+  return (
+    <>
+      <input type="hidden" name="studentName" value={s.studentName} />
+      <input type="hidden" name="classSection" value={s.classSection} />
+      <input type="hidden" name="rollNumber" value={s.rollNumber} />
+      <input type="hidden" name="parentName" value={s.parentName} />
+      <input type="hidden" name="parentEmail" value={s.parentEmail} />
+      <input type="hidden" name="parentPhone" value={s.parentPhone} />
+    </>
+  );
+}
+
 // ─── Sub-step 1: Personal ───────────────────────────────────────────────
 
 function PersonalForm({
@@ -362,25 +336,25 @@ function PersonalForm({
   pending,
   error,
 }: {
-  state: Extract<FeedbackPhase, { phase: "board" }>;
+  state: FeedbackPhase;
   scId: string;
   formAction: (formData: FormData) => void;
   pending: boolean;
   error?: string;
 }) {
+  const s = state.currentStudent;
   return (
     <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
       <input type="hidden" name="intent" value="submit_personal" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
-      <input type="hidden" name="registrationId" value={state.registration.id} />
       <input type="hidden" name="sessionCompanyId" value={scId} />
 
       <div>
         <h2 className="text-base font-bold mb-1">Personal details</h2>
         <p className="text-sm text-gray-600">
-          Confirm and edit these as needed. <strong>The student name below is what
-          will appear on the participation certificate</strong> — please make sure the
-          spelling is exactly how you want it printed.
+          <strong>The student name below is what will appear on the participation
+          certificate</strong> — please make sure the spelling is exactly how you want
+          it printed.
         </p>
       </div>
 
@@ -392,32 +366,34 @@ function PersonalForm({
           <input
             name="studentName"
             required
-            defaultValue={state.registration.studentName}
+            defaultValue={s?.studentName ?? ""}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
           <p className="text-xs text-gray-500 mt-1">As it will appear on the certificate.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Class / Section
+            Class / Section <span className="text-red-500">*</span>
           </label>
           <input
-            value={state.registration.classSection}
-            disabled
-            className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
+            name="classSection"
+            required
+            defaultValue={s?.classSection ?? ""}
+            placeholder="e.g. 10D"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
-          <p className="text-xs text-gray-400 mt-1">Locked — contact school if incorrect.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Roll Number
+            Roll Number <span className="text-red-500">*</span>
           </label>
           <input
-            value={state.registration.rollNumber}
-            disabled
-            className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
+            name="rollNumber"
+            required
+            defaultValue={s?.rollNumber ?? ""}
+            placeholder="e.g. 22"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
-          <p className="text-xs text-gray-400 mt-1">Locked — contact school if incorrect.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -426,7 +402,7 @@ function PersonalForm({
           <input
             name="parentName"
             required
-            defaultValue={state.registration.parentName}
+            defaultValue={s?.parentName ?? ""}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
         </div>
@@ -438,7 +414,7 @@ function PersonalForm({
             name="parentEmail"
             type="email"
             required
-            defaultValue={state.registration.parentEmail}
+            defaultValue={s?.parentEmail ?? ""}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
         </div>
@@ -450,7 +426,7 @@ function PersonalForm({
             name="parentPhone"
             type="tel"
             required
-            defaultValue={state.registration.parentPhone}
+            defaultValue={s?.parentPhone ?? ""}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
         </div>
@@ -469,7 +445,7 @@ function PersonalForm({
   );
 }
 
-// ─── Sub-step 2: Internship feedback (section 2) ────────────────────────
+// ─── Sub-step 2: Internship feedback ─────────────────────────────────────
 
 function Section2Form({
   state,
@@ -478,7 +454,7 @@ function Section2Form({
   pending,
   error,
 }: {
-  state: Extract<FeedbackPhase, { phase: "board" }>;
+  state: FeedbackPhase;
   company: BoardCompany;
   formAction: (formData: FormData) => void;
   pending: boolean;
@@ -489,8 +465,8 @@ function Section2Form({
     <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
       <input type="hidden" name="intent" value="submit_section_2" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
-      <input type="hidden" name="registrationId" value={state.registration.id} />
       <input type="hidden" name="sessionCompanyId" value={company.sessionCompanyId} />
+      <HiddenStudent state={state} />
 
       <h2 className="text-base font-bold">Internship feedback</h2>
 
@@ -529,14 +505,14 @@ function Section2Form({
         name="interactivityRating"
         leftLabel="Not so interactive"
         rightLabel="Highly interactive"
-        defaultValue={pre?.interactivityRating}
+        defaultValue={pre?.interactivityRating ?? undefined}
       />
       <RatingScale
         label="How would you rate the coaches/speakers?"
         name="speakerRating"
         leftLabel="Poor"
         rightLabel="Excellent"
-        defaultValue={pre?.speakerRating}
+        defaultValue={pre?.speakerRating ?? undefined}
       />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -554,19 +530,19 @@ function Section2Form({
         label='"This internship changed my kid&apos;s views about this field / career"'
         name="viewChangeLevel"
         options={VIEW_CHANGE}
-        defaultValue={pre?.viewChangeLevel}
+        defaultValue={pre?.viewChangeLevel ?? undefined}
       />
       <RadioGroup
         label="How valuable was this internship for your child&apos;s overall learning?"
         name="learningValue"
         options={LEARNING}
-        defaultValue={pre?.learningValue}
+        defaultValue={pre?.learningValue ?? undefined}
       />
       <RadioGroup
         label="Did this internship help your child get more clarity on what subjects to choose after 10th grade?"
         name="subjectClarity"
         options={CLARITY}
-        defaultValue={pre?.subjectClarity}
+        defaultValue={pre?.subjectClarity ?? undefined}
       />
 
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
@@ -582,7 +558,7 @@ function Section2Form({
   );
 }
 
-// ─── Sub-step 3: Program / ops feedback (section 3) ─────────────────────
+// ─── Sub-step 3: Program / ops feedback ──────────────────────────────────
 
 function Section3Form({
   state,
@@ -591,7 +567,7 @@ function Section3Form({
   pending,
   error,
 }: {
-  state: Extract<FeedbackPhase, { phase: "board" }>;
+  state: FeedbackPhase;
   company: BoardCompany;
   formAction: (formData: FormData) => void;
   pending: boolean;
@@ -602,8 +578,8 @@ function Section3Form({
     <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
       <input type="hidden" name="intent" value="submit_section_3" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
-      <input type="hidden" name="registrationId" value={state.registration.id} />
       <input type="hidden" name="sessionCompanyId" value={company.sessionCompanyId} />
+      <HiddenStudent state={state} />
 
       <div>
         <h2 className="text-base font-bold">Program / operations feedback</h2>

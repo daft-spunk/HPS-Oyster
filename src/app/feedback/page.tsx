@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFeedbackEligibleSession } from "@/lib/actions/feedback";
 import { getInternshipSessionWithCompanies } from "@/lib/actions/internships";
+import { getInitialBoard } from "@/lib/actions/feedback";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { FeedbackForm } from "./FeedbackForm";
 import { formatTargetClass } from "@/lib/format";
@@ -12,8 +13,6 @@ export default async function FeedbackPage({
 }) {
   const { session: requestedSessionId } = await searchParams;
 
-  // Pick session: explicit ?session=… if given, else newest active session
-  // that has at least one past-date internship.
   let sessionId = requestedSessionId ?? null;
   if (!sessionId) {
     const s = await getFeedbackEligibleSession();
@@ -53,6 +52,8 @@ export default async function FeedbackPage({
     );
   }
 
+  const initialBoard = await getInitialBoard(sessionId);
+
   return (
     <div className="min-h-screen">
       <PublicNavbar />
@@ -69,7 +70,7 @@ export default async function FeedbackPage({
           experience. Your inputs help us shape the program. <strong>Feedback is required
           to be eligible for the internship participation certificate.</strong>
         </div>
-        <FeedbackForm sessionId={sessionId} />
+        <FeedbackForm sessionId={sessionId} initialBoard={initialBoard} />
       </div>
     </div>
   );

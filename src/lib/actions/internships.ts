@@ -808,7 +808,10 @@ export async function getInternshipRegistrations(sessionId: string) {
       createdAt: internshipRegistrations.createdAt,
       companyFeedbackCount: sql<number>`(
         SELECT COUNT(*) FROM internship_feedback_company ifc
-        WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
+        JOIN session_companies sc ON sc.id = ifc.session_company_id
+        WHERE sc.session_id = ${sessionId}
+          AND lower(ifc.class_section) = lower(${sql.raw('"internship_registrations"."class_section"')})
+          AND lower(ifc.roll_number) = lower(${sql.raw('"internship_registrations"."roll_number"')})
       )`.as("company_feedback_count"),
     })
     .from(internshipRegistrations)

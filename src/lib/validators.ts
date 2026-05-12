@@ -194,6 +194,8 @@ export const ENCOURAGE_MORE_OPTIONS = ["definitely_will", "probably_will", "mayb
 
 export const feedbackPersonalSchema = z.object({
   studentName: z.string().min(1, "Student name is required"),
+  classSection: z.string().min(1, "Class / Section is required"),
+  rollNumber: z.string().min(1, "Roll number is required"),
   parentName: z.string().min(1, "Parent name is required"),
   parentEmail: z.string().email("Invalid email"),
   parentPhone: z.string().min(10, "Invalid phone number"),

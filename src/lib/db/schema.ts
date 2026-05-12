@@ -191,32 +191,33 @@ export const internshipRegistrations = pgTable(
 // INTERNSHIP FEEDBACK (post-internship survey)
 // ─────────────────────────────────────────────────────────
 
-export const internshipFeedbackCompany = pgTable(
-  "internship_feedback_company",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    registrationId: uuid("registration_id")
-      .notNull()
-      .references(() => internshipRegistrations.id, { onDelete: "cascade" }),
-    sessionCompanyId: uuid("session_company_id")
-      .notNull()
-      .references(() => sessionCompanies.id, { onDelete: "cascade" }),
-    internshipDate: date("internship_date"),
-    interactivityRating: integer("interactivity_rating").notNull(),
-    speakerRating: integer("speaker_rating").notNull(),
-    keyTakeaway: text("key_takeaway").notNull(),
-    viewChangeLevel: text("view_change_level").notNull(),
-    learningValue: text("learning_value").notNull(),
-    subjectClarity: text("subject_clarity").notNull(),
-    // Section 3 (program / ops) responses are captured alongside each
-    // internship's section 2 since the parent fills the full flow per
-    // internship attended. Nullable to allow partial in-progress saves.
-    organizationSatisfaction: text("organization_satisfaction"),
-    encourageMore: text("encourage_more"),
-    likedAndBetter: text("liked_and_better"),
-    suggestions: text("suggestions"), // optional even when present
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [unique("unique_feedback_company").on(t.registrationId, t.sessionCompanyId)]
-);
+export const internshipFeedbackCompany = pgTable("internship_feedback_company", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionCompanyId: uuid("session_company_id")
+    .notNull()
+    .references(() => sessionCompanies.id, { onDelete: "cascade" }),
+  // Student identity captured inline so feedback works even for students
+  // who attended but never registered through the portal. Uniqueness is
+  // enforced by a case-insensitive (session_company_id, class, roll) index.
+  studentName: text("student_name").notNull(),
+  classSection: text("class_section").notNull(),
+  rollNumber: text("roll_number").notNull(),
+  parentName: text("parent_name").notNull(),
+  parentEmail: text("parent_email").notNull(),
+  parentPhone: text("parent_phone").notNull(),
+  // Section 2 — internship-specific. NULL until step 2 is filled.
+  internshipDate: date("internship_date"),
+  interactivityRating: integer("interactivity_rating"),
+  speakerRating: integer("speaker_rating"),
+  keyTakeaway: text("key_takeaway"),
+  viewChangeLevel: text("view_change_level"),
+  learningValue: text("learning_value"),
+  subjectClarity: text("subject_clarity"),
+  // Section 3 — program / ops. NULL until step 3 is filled.
+  organizationSatisfaction: text("organization_satisfaction"),
+  encourageMore: text("encourage_more"),
+  likedAndBetter: text("liked_and_better"),
+  suggestions: text("suggestions"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

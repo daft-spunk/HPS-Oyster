@@ -2,7 +2,6 @@ import { isAuthenticated } from "@/lib/auth";
 import { formatIstForCsv } from "@/lib/format";
 import { db } from "@/lib/db";
 import {
-  internshipRegistrations,
   internshipFeedbackCompany,
   sessionCompanies,
   companies,
@@ -28,14 +27,13 @@ export async function GET(
 
   const rowsData = await db
     .select({
-      registeredAt: internshipRegistrations.createdAt,
       submittedAt: internshipFeedbackCompany.updatedAt,
-      studentName: internshipRegistrations.studentName,
-      classSection: internshipRegistrations.classSection,
-      rollNumber: internshipRegistrations.rollNumber,
-      parentName: internshipRegistrations.parentName,
-      parentEmail: internshipRegistrations.parentEmail,
-      parentPhone: internshipRegistrations.parentPhone,
+      studentName: internshipFeedbackCompany.studentName,
+      classSection: internshipFeedbackCompany.classSection,
+      rollNumber: internshipFeedbackCompany.rollNumber,
+      parentName: internshipFeedbackCompany.parentName,
+      parentEmail: internshipFeedbackCompany.parentEmail,
+      parentPhone: internshipFeedbackCompany.parentPhone,
       companyName: companies.name,
       internshipDate: internshipFeedbackCompany.internshipDate,
       interactivityRating: internshipFeedbackCompany.interactivityRating,
@@ -51,19 +49,14 @@ export async function GET(
     })
     .from(internshipFeedbackCompany)
     .innerJoin(
-      internshipRegistrations,
-      eq(internshipFeedbackCompany.registrationId, internshipRegistrations.id)
-    )
-    .innerJoin(
       sessionCompanies,
       eq(internshipFeedbackCompany.sessionCompanyId, sessionCompanies.id)
     )
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
-    .where(eq(internshipRegistrations.sessionId, id));
+    .where(eq(sessionCompanies.sessionId, id));
 
   const headers = [
     "Submitted At",
-    "Registered At",
     "Student Name",
     "Class/Section",
     "Roll Number",
@@ -90,7 +83,6 @@ export async function GET(
       c.organizationSatisfaction && c.encourageMore && c.likedAndBetter ? "Yes" : "No";
     return [
       formatIstForCsv(c.submittedAt),
-      formatIstForCsv(c.registeredAt),
       c.studentName,
       c.classSection,
       c.rollNumber,

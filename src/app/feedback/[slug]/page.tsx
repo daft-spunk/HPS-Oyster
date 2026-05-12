@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getInternshipSessionBySlug } from "@/lib/actions/internships";
+import { getInitialBoard } from "@/lib/actions/feedback";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { FeedbackForm } from "../FeedbackForm";
 import { formatTargetClass } from "@/lib/format";
@@ -12,6 +13,7 @@ export default async function FeedbackSlugPage({
   const { slug } = await params;
   const session = await getInternshipSessionBySlug(slug);
   if (!session) notFound();
+  const initialBoard = await getInitialBoard(session.id);
 
   return (
     <div className="min-h-screen">
@@ -30,7 +32,7 @@ export default async function FeedbackSlugPage({
           <strong>Feedback is required to be eligible for the internship participation
           certificate.</strong>
         </div>
-        <FeedbackForm sessionId={session.id} />
+        <FeedbackForm sessionId={session.id} initialBoard={initialBoard} />
       </div>
     </div>
   );

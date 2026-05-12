@@ -79,7 +79,7 @@ export default async function FeedbackOverviewPage({
             </thead>
             <tbody className="divide-y">
               {rows.map((r, i) => (
-                <tr key={r.id}>
+                <tr key={r.key}>
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="px-4 py-3">{r.studentName}</td>
                   <td className="px-4 py-3">{r.classSection}</td>
@@ -106,8 +106,8 @@ export default async function FeedbackOverviewPage({
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                    {r.lastFeedbackAt
-                      ? new Date(r.lastFeedbackAt).toLocaleString("en-IN", {
+                    {r.lastUpdatedAt
+                      ? new Date(r.lastUpdatedAt).toLocaleString("en-IN", {
                           dateStyle: "medium",
                           timeStyle: "short",
                           timeZone: "Asia/Kolkata",
@@ -117,7 +117,7 @@ export default async function FeedbackOverviewPage({
                   <td className="px-4 py-3 text-right">
                     {Number(r.section2Count) > 0 ? (
                       <Link
-                        href={`/admin/internship-sessions/${id}/feedback/${r.id}`}
+                        href={`/admin/internship-sessions/${id}/feedback/${encodeURIComponent(`${r.classSection}__${r.rollNumber}`)}`}
                         className="text-xs text-blue-600 hover:underline"
                       >
                         View
