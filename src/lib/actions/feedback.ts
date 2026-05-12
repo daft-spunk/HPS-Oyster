@@ -24,7 +24,9 @@ export interface BoardCompany {
   sessionCompanyId: string;
   name: string;
   sector: string;
-  internshipDates: string[] | null;
+  // The specific date this board entry represents (one row per company-date).
+  // null only when the company has no recorded dates.
+  internshipDate: string | null;
   feedback: {
     studentName: string;
     classSection: string;
@@ -62,6 +64,7 @@ export type FeedbackPhase = {
   error?: string;
   flash?: string;
   lastSubmittedScId?: string;
+  lastSubmittedDate?: string | null;
   lastSubmittedStep?: "personal" | "section2" | "section3";
 };
 
@@ -81,6 +84,7 @@ async function buildBoard(
     error?: string;
     flash?: string;
     lastSubmittedScId?: string;
+    lastSubmittedDate?: string | null;
     lastSubmittedStep?: "personal" | "section2" | "section3";
   }
 ): Promise<FeedbackPhase> {
@@ -95,7 +99,9 @@ async function buildBoard(
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(sessionCompanies.sessionId, sessionId));
 
-  const eligible = sessionCompaniesAll.filter((c) => isInternshipOver(c.internshipDates ?? null));
+  const eligibleCompanyRows = sessionCompaniesAll.filter((c) =>
+    isInternshipOver(c.internshipDates ?? null)
+  );
 
   // Pull existing feedback rows for THIS student (if we know who they are)
   const existing = student
@@ -107,38 +113,49 @@ async function buildBoard(
             AND lower(${internshipFeedbackCompany.rollNumber}) = lower(${student.rollNumber})`
         )
     : [];
-  const byScId = new Map(existing.map((e) => [e.sessionCompanyId, e]));
+  // Key on `${scId}|${date ?? ""}` so multi-date entries have their own row
+  const byKey = new Map(
+    existing.map((e) => [`${e.sessionCompanyId}|${e.internshipDate ?? ""}`, e])
+  );
 
-  const eligibleCompanies: BoardCompany[] = eligible.map((c) => {
-    const f = byScId.get(c.sessionCompanyId);
-    return {
-      sessionCompanyId: c.sessionCompanyId,
-      name: c.name,
-      sector: c.sector,
-      internshipDates: (c.internshipDates ?? null) as string[] | null,
-      feedback: f
-        ? {
-            studentName: f.studentName,
-            classSection: f.classSection,
-            rollNumber: f.rollNumber,
-            parentName: f.parentName,
-            parentEmail: f.parentEmail,
-            parentPhone: f.parentPhone,
-            internshipDate: f.internshipDate ?? null,
-            interactivityRating: f.interactivityRating ?? null,
-            speakerRating: f.speakerRating ?? null,
-            keyTakeaway: f.keyTakeaway ?? null,
-            viewChangeLevel: f.viewChangeLevel ?? null,
-            learningValue: f.learningValue ?? null,
-            subjectClarity: f.subjectClarity ?? null,
-            organizationSatisfaction: f.organizationSatisfaction ?? null,
-            encourageMore: f.encourageMore ?? null,
-            likedAndBetter: f.likedAndBetter ?? null,
-            suggestions: f.suggestions ?? null,
-            updatedAt: f.updatedAt,
-          }
-        : null,
-    };
+  // Expand each company into one board entry per internship date (or a single
+  // entry with null date when no dates are recorded).
+  const eligibleCompanies: BoardCompany[] = eligibleCompanyRows.flatMap((c) => {
+    const dates =
+      c.internshipDates && c.internshipDates.length > 0
+        ? c.internshipDates
+        : [null];
+    return dates.map((d) => {
+      const f = byKey.get(`${c.sessionCompanyId}|${d ?? ""}`);
+      return {
+        sessionCompanyId: c.sessionCompanyId,
+        name: c.name,
+        sector: c.sector,
+        internshipDate: d,
+        feedback: f
+          ? {
+              studentName: f.studentName,
+              classSection: f.classSection,
+              rollNumber: f.rollNumber,
+              parentName: f.parentName,
+              parentEmail: f.parentEmail,
+              parentPhone: f.parentPhone,
+              internshipDate: f.internshipDate ?? null,
+              interactivityRating: f.interactivityRating ?? null,
+              speakerRating: f.speakerRating ?? null,
+              keyTakeaway: f.keyTakeaway ?? null,
+              viewChangeLevel: f.viewChangeLevel ?? null,
+              learningValue: f.learningValue ?? null,
+              subjectClarity: f.subjectClarity ?? null,
+              organizationSatisfaction: f.organizationSatisfaction ?? null,
+              encourageMore: f.encourageMore ?? null,
+              likedAndBetter: f.likedAndBetter ?? null,
+              suggestions: f.suggestions ?? null,
+              updatedAt: f.updatedAt,
+            }
+          : null,
+      };
+    });
   });
 
   return {
@@ -149,12 +166,14 @@ async function buildBoard(
     error: extra?.error,
     flash: extra?.flash,
     lastSubmittedScId: extra?.lastSubmittedScId,
+    lastSubmittedDate: extra?.lastSubmittedDate,
     lastSubmittedStep: extra?.lastSubmittedStep,
   };
 }
 
 async function findRowId(
   sessionCompanyId: string,
+  internshipDate: string | null,
   classSection: string,
   rollNumber: string
 ) {
@@ -163,6 +182,7 @@ async function findRowId(
     .from(internshipFeedbackCompany)
     .where(
       sql`${internshipFeedbackCompany.sessionCompanyId} = ${sessionCompanyId}
+        AND ${internshipFeedbackCompany.internshipDate} IS NOT DISTINCT FROM ${internshipDate}
         AND lower(${internshipFeedbackCompany.classSection}) = lower(${classSection})
         AND lower(${internshipFeedbackCompany.rollNumber}) = lower(${rollNumber})`
     );
@@ -197,6 +217,8 @@ export async function feedbackEntry(
   const studentForBoard = student.classSection && student.rollNumber ? student : null;
 
   const sessionCompanyId = (formData.get("sessionCompanyId") as string) || "";
+  const rawDate = ((formData.get("internshipDate") as string) || "").trim();
+  const internshipDate = rawDate || null;
 
   if (intent === "submit_personal") {
     const parsed = feedbackPersonalSchema.safeParse(student);
@@ -227,7 +249,12 @@ export async function feedbackEntry(
       });
     }
 
-    const existingId = await findRowId(sessionCompanyId, parsed.data.classSection, parsed.data.rollNumber);
+    const existingId = await findRowId(
+      sessionCompanyId,
+      internshipDate,
+      parsed.data.classSection,
+      parsed.data.rollNumber
+    );
     if (existingId) {
       await db
         .update(internshipFeedbackCompany)
@@ -236,6 +263,7 @@ export async function feedbackEntry(
     } else {
       await db.insert(internshipFeedbackCompany).values({
         sessionCompanyId,
+        internshipDate,
         ...parsed.data,
       });
     }
@@ -245,6 +273,7 @@ export async function feedbackEntry(
     return buildBoard(sessionId, parsed.data, {
       flash: "Personal details saved.",
       lastSubmittedScId: sessionCompanyId,
+      lastSubmittedDate: internshipDate,
       lastSubmittedStep: "personal",
     });
   }
@@ -258,7 +287,7 @@ export async function feedbackEntry(
     }
     const parsed = feedbackCompanyEntrySchema.safeParse({
       sessionCompanyId,
-      internshipDate: (formData.get("internshipDate") as string) || undefined,
+      internshipDate: internshipDate ?? undefined,
       interactivityRating: Number(formData.get("interactivityRating") || 0),
       speakerRating: Number(formData.get("speakerRating") || 0),
       keyTakeaway: ((formData.get("keyTakeaway") as string) || "").trim(),
@@ -270,10 +299,12 @@ export async function feedbackEntry(
       return buildBoard(sessionId, studentForBoard, {
         error: parsed.error.issues[0].message,
         lastSubmittedScId: sessionCompanyId,
+        lastSubmittedDate: internshipDate,
       });
     }
     const existingId = await findRowId(
       sessionCompanyId,
+      internshipDate,
       studentForBoard.classSection,
       studentForBoard.rollNumber
     );
@@ -281,12 +312,12 @@ export async function feedbackEntry(
       return buildBoard(sessionId, studentForBoard, {
         error: "Please fill personal details first",
         lastSubmittedScId: sessionCompanyId,
+        lastSubmittedDate: internshipDate,
       });
     }
     await db
       .update(internshipFeedbackCompany)
       .set({
-        internshipDate: parsed.data.internshipDate || null,
         interactivityRating: parsed.data.interactivityRating,
         speakerRating: parsed.data.speakerRating,
         keyTakeaway: parsed.data.keyTakeaway,
@@ -301,6 +332,7 @@ export async function feedbackEntry(
     return buildBoard(sessionId, studentForBoard, {
       flash: "Internship feedback saved.",
       lastSubmittedScId: sessionCompanyId,
+      lastSubmittedDate: internshipDate,
       lastSubmittedStep: "section2",
     });
   }
@@ -327,6 +359,7 @@ export async function feedbackEntry(
     }
     const existingId = await findRowId(
       sessionCompanyId,
+      internshipDate,
       studentForBoard.classSection,
       studentForBoard.rollNumber
     );
@@ -334,6 +367,7 @@ export async function feedbackEntry(
       return buildBoard(sessionId, studentForBoard, {
         error: "Please fill personal details first",
         lastSubmittedScId: sessionCompanyId,
+        lastSubmittedDate: internshipDate,
       });
     }
     await db
@@ -351,6 +385,7 @@ export async function feedbackEntry(
     return buildBoard(sessionId, studentForBoard, {
       flash: "Program feedback saved. Thanks!",
       lastSubmittedScId: sessionCompanyId,
+      lastSubmittedDate: internshipDate,
       lastSubmittedStep: "section3",
     });
   }

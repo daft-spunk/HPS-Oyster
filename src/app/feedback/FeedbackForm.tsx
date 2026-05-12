@@ -42,7 +42,29 @@ const ENCOURAGE = [
 ];
 
 type SubStep = "personal" | "section2" | "section3";
-type View = { kind: "board" } | { kind: "wizard"; scId: string; subStep: SubStep };
+type View =
+  | { kind: "board" }
+  | { kind: "wizard"; scId: string; date: string | null; subStep: SubStep };
+
+function formatDate(d: string | null): string {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    timeZone: "Asia/Kolkata",
+  });
+}
+
+function isPersonalDone(c: BoardCompany): boolean {
+  return !!c.feedback;
+}
+function isSection2Done(c: BoardCompany): boolean {
+  return !!c.feedback && c.feedback.interactivityRating !== null;
+}
+function isSection3Done(c: BoardCompany): boolean {
+  return !!c.feedback && !!c.feedback.organizationSatisfaction;
+}
 
 function isCompanyComplete(c: BoardCompany): boolean {
   return !!(
@@ -78,22 +100,32 @@ export function FeedbackForm({
   );
   const [view, setView] = useState<View>({ kind: "board" });
 
-  const lastConsumedRef = useRef<{ scId?: string; step?: string } | null>(null);
+  const lastConsumedRef = useRef<{
+    scId?: string;
+    date?: string;
+    step?: string;
+  } | null>(null);
   useEffect(() => {
     if (state.error || !state.lastSubmittedScId || !state.lastSubmittedStep) return;
     if (view.kind !== "wizard") return;
     if (state.lastSubmittedScId !== view.scId) return;
-    const sig = { scId: state.lastSubmittedScId, step: state.lastSubmittedStep };
+    if ((state.lastSubmittedDate ?? null) !== view.date) return;
+    const sig = {
+      scId: state.lastSubmittedScId,
+      date: state.lastSubmittedDate ?? "",
+      step: state.lastSubmittedStep,
+    };
     if (
       lastConsumedRef.current?.scId === sig.scId &&
+      lastConsumedRef.current?.date === sig.date &&
       lastConsumedRef.current?.step === sig.step
     )
       return;
     lastConsumedRef.current = sig;
     if (state.lastSubmittedStep === "personal") {
-      setView({ kind: "wizard", scId: view.scId, subStep: "section2" });
+      setView({ kind: "wizard", scId: view.scId, date: view.date, subStep: "section2" });
     } else if (state.lastSubmittedStep === "section2") {
-      setView({ kind: "wizard", scId: view.scId, subStep: "section3" });
+      setView({ kind: "wizard", scId: view.scId, date: view.date, subStep: "section3" });
     } else if (state.lastSubmittedStep === "section3") {
       setView({ kind: "board" });
     }
@@ -101,11 +133,15 @@ export function FeedbackForm({
 
   // ── Per-internship wizard ───────────────────────────────────────────
   if (view.kind === "wizard") {
-    const company = state.eligibleCompanies.find((c) => c.sessionCompanyId === view.scId);
+    const company = state.eligibleCompanies.find(
+      (c) => c.sessionCompanyId === view.scId && (c.internshipDate ?? null) === view.date
+    );
     if (!company) {
       setView({ kind: "board" });
       return null;
     }
+    const personalDone = isPersonalDone(company);
+    const section2Done = isSection2Done(company);
     return (
       <div className="space-y-4">
         {state.flash && (
@@ -116,13 +152,18 @@ export function FeedbackForm({
         <WizardHeader
           company={company}
           subStep={view.subStep}
-          onJump={(s) => setView({ kind: "wizard", scId: view.scId, subStep: s })}
+          personalDone={personalDone}
+          section2Done={section2Done}
+          onJump={(s) =>
+            setView({ kind: "wizard", scId: view.scId, date: view.date, subStep: s })
+          }
           onBackToBoard={() => setView({ kind: "board" })}
         />
         {view.subStep === "personal" && (
           <PersonalForm
             state={state}
             scId={view.scId}
+            date={view.date}
             formAction={formAction}
             pending={pending}
             error={state.error}
@@ -209,10 +250,19 @@ export function FeedbackForm({
               const complete = isCompanyComplete(c);
               const inProgress = !!c.feedback && !complete;
               const startStep = defaultSubStep(c, !!state.currentStudent);
+              const dateLabel = formatDate(c.internshipDate);
               return (
-                <li key={c.sessionCompanyId} className="px-5 py-4 flex items-center gap-3">
+                <li
+                  key={`${c.sessionCompanyId}|${c.internshipDate ?? ""}`}
+                  className="px-5 py-4 flex items-center gap-3"
+                >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium">{c.name}</p>
+                    <p className="font-medium">
+                      {c.name}
+                      {dateLabel && (
+                        <span className="text-gray-500 font-normal"> · {dateLabel}</span>
+                      )}
+                    </p>
                     <p className="text-xs text-gray-500">{c.sector}</p>
                     {complete ? (
                       <p className="text-xs text-emerald-700 mt-1">
@@ -226,9 +276,7 @@ export function FeedbackForm({
                       </p>
                     ) : inProgress ? (
                       <p className="text-xs text-amber-700 mt-1">⌛ In progress</p>
-                    ) : (
-                      <p className="text-xs text-gray-400 mt-1">⌛ Not started</p>
-                    )}
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -236,6 +284,7 @@ export function FeedbackForm({
                       setView({
                         kind: "wizard",
                         scId: c.sessionCompanyId,
+                        date: c.internshipDate,
                         subStep: startStep,
                       })
                     }
@@ -262,19 +311,24 @@ export function FeedbackForm({
 function WizardHeader({
   company,
   subStep,
+  personalDone,
+  section2Done,
   onJump,
   onBackToBoard,
 }: {
   company: BoardCompany;
   subStep: SubStep;
+  personalDone: boolean;
+  section2Done: boolean;
   onJump: (s: SubStep) => void;
   onBackToBoard: () => void;
 }) {
-  const steps: { id: SubStep; label: string }[] = [
-    { id: "personal", label: "1. Personal" },
-    { id: "section2", label: "2. Internship feedback" },
-    { id: "section3", label: "3. Program feedback" },
+  const steps: { id: SubStep; label: string; locked: boolean }[] = [
+    { id: "personal", label: "1. Personal", locked: false },
+    { id: "section2", label: "2. Internship feedback", locked: !personalDone },
+    { id: "section3", label: "3. Program feedback", locked: !section2Done },
   ];
+  const dateLabel = formatDate(company.internshipDate);
   return (
     <div>
       <button
@@ -286,7 +340,12 @@ function WizardHeader({
       </button>
       <div className="bg-white border rounded-lg p-4 mb-2">
         <p className="text-xs text-gray-500 uppercase tracking-wide">Internship</p>
-        <h2 className="text-lg font-bold">{company.name}</h2>
+        <h2 className="text-lg font-bold">
+          {company.name}
+          {dateLabel && (
+            <span className="text-gray-500 font-normal text-base"> · {dateLabel}</span>
+          )}
+        </h2>
         <p className="text-xs text-gray-500">{company.sector}</p>
       </div>
       <div className="bg-white border rounded-lg p-2 flex gap-1 text-xs overflow-x-auto">
@@ -296,12 +355,18 @@ function WizardHeader({
             <button
               key={s.id}
               type="button"
-              onClick={() => onJump(s.id)}
+              disabled={s.locked}
+              onClick={() => !s.locked && onJump(s.id)}
               className={`flex-1 min-w-fit px-3 py-2 rounded-md font-medium transition whitespace-nowrap ${
-                active ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-100"
+                active
+                  ? "bg-primary text-white"
+                  : s.locked
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-600 hover:bg-gray-100"
               }`}
+              title={s.locked ? "Finish the previous step first" : undefined}
             >
-              {s.label}
+              {s.locked ? `🔒 ${s.label}` : s.label}
             </button>
           );
         })}
@@ -332,12 +397,14 @@ function HiddenStudent({ state }: { state: FeedbackPhase }) {
 function PersonalForm({
   state,
   scId,
+  date,
   formAction,
   pending,
   error,
 }: {
   state: FeedbackPhase;
   scId: string;
+  date: string | null;
   formAction: (formData: FormData) => void;
   pending: boolean;
   error?: string;
@@ -348,6 +415,7 @@ function PersonalForm({
       <input type="hidden" name="intent" value="submit_personal" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
       <input type="hidden" name="sessionCompanyId" value={scId} />
+      <input type="hidden" name="internshipDate" value={date ?? ""} />
 
       <div>
         <h2 className="text-base font-bold mb-1">Personal details</h2>
@@ -466,39 +534,10 @@ function Section2Form({
       <input type="hidden" name="intent" value="submit_section_2" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
       <input type="hidden" name="sessionCompanyId" value={company.sessionCompanyId} />
+      <input type="hidden" name="internshipDate" value={company.internshipDate ?? ""} />
       <HiddenStudent state={state} />
 
       <h2 className="text-base font-bold">Internship feedback</h2>
-
-      {company.internshipDates && company.internshipDates.length > 1 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date attended <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="internshipDate"
-            required
-            defaultValue={pre?.internshipDate ?? ""}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option value="">Pick the date you attended...</option>
-            {company.internshipDates.map((d) => (
-              <option key={d} value={d}>
-                {new Date(d).toLocaleDateString("en-GB", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                  timeZone: "Asia/Kolkata",
-                })}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      {company.internshipDates && company.internshipDates.length === 1 && (
-        <input type="hidden" name="internshipDate" value={company.internshipDates[0]} />
-      )}
 
       <RatingScale
         label="How interactive was this internship?"
@@ -579,6 +618,7 @@ function Section3Form({
       <input type="hidden" name="intent" value="submit_section_3" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
       <input type="hidden" name="sessionCompanyId" value={company.sessionCompanyId} />
+      <input type="hidden" name="internshipDate" value={company.internshipDate ?? ""} />
       <HiddenStudent state={state} />
 
       <div>
@@ -634,7 +674,7 @@ function Section3Form({
         disabled={pending}
         className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
       >
-        {pending ? "Saving..." : "Finish this internship"}
+        {pending ? "Saving..." : "Submit feedback"}
       </button>
     </form>
   );
