@@ -767,12 +767,6 @@ export async function getInternshipRegistrations(sessionId: string) {
         SELECT COUNT(*) FROM internship_feedback_company ifc
         WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
       )`.as("company_feedback_count"),
-      sessionFeedbackSubmitted: sql<boolean>`(
-        SELECT EXISTS(
-          SELECT 1 FROM internship_feedback_session ifs
-          WHERE ifs.registration_id = ${sql.raw('"internship_registrations"."id"')}
-        )
-      )`.as("session_feedback_submitted"),
     })
     .from(internshipRegistrations)
     .where(eq(internshipRegistrations.sessionId, sessionId))

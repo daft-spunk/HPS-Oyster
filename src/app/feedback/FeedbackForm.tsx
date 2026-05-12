@@ -41,7 +41,7 @@ const ENCOURAGE = [
   { value: "definitely_not", label: "Definitely will not" },
 ];
 
-type View = "board" | { kind: "company"; scId: string } | "overall";
+type View = "board" | { kind: "company"; scId: string };
 
 export function FeedbackForm({ sessionId }: { sessionId: string }) {
   const [state, formAction, pending] = useActionState<FeedbackPhase | null, FormData>(
@@ -126,28 +126,10 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
     );
   }
 
-  // ── Overall form ─────────────────────────────────────────────────────
-  if (view === "overall") {
-    return (
-      <OverallForm
-        sessionId={state.sessionId}
-        registrationId={state.registration.id}
-        prefill={state.overall}
-        formAction={formAction}
-        pending={pending}
-        onBack={() => setView("board")}
-        error={state.error}
-      />
-    );
-  }
-
   // ── Board view (default) ─────────────────────────────────────────────
   const reviewed = state.eligibleCompanies.filter((c) => c.feedback).length;
-  const overallDone = !!state.overall.updatedAt;
   const allDone =
-    state.eligibleCompanies.length > 0 &&
-    reviewed === state.eligibleCompanies.length &&
-    overallDone;
+    state.eligibleCompanies.length > 0 && reviewed === state.eligibleCompanies.length;
 
   return (
     <div className="space-y-5">
@@ -227,44 +209,11 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
           </ul>
         )}
       </div>
-
-      <div className="bg-white border rounded-lg p-5 flex items-center gap-3">
-        <div className="flex-1">
-          <h3 className="font-semibold text-sm">Overall rating</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            How the program ran overall — communication, logistics, and your suggestions for next time.
-          </p>
-          {overallDone ? (
-            <p className="text-xs text-emerald-700 mt-1">
-              ✓ Submitted{" "}
-              {state.overall.updatedAt &&
-                new Date(state.overall.updatedAt).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  timeZone: "Asia/Kolkata",
-                })}
-            </p>
-          ) : (
-            <p className="text-xs text-gray-400 mt-1">⌛ Not submitted</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setView("overall")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-            overallDone
-              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              : "bg-primary text-white hover:bg-primary-light"
-          }`}
-        >
-          {overallDone ? "Edit" : "Give overall rating"}
-        </button>
-      </div>
     </div>
   );
 }
 
-// ─── Single-internship form ─────────────────────────────────────────────
+// ─── Single-internship form (includes section-3 questions per internship) ──
 
 function CompanyForm({
   sessionId,
@@ -381,83 +330,20 @@ function CompanyForm({
         defaultValue={pre?.subjectClarity}
       />
 
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
-        >
-          {pending ? "Saving..." : "Save Feedback"}
-        </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ─── Overall (session-level) form ───────────────────────────────────────
-
-function OverallForm({
-  sessionId,
-  registrationId,
-  prefill,
-  formAction,
-  pending,
-  onBack,
-  error,
-}: {
-  sessionId: string;
-  registrationId: string;
-  prefill: {
-    organizationSatisfaction: string | null;
-    encourageMore: string | null;
-    likedAndBetter: string | null;
-    suggestions: string | null;
-  };
-  formAction: (formData: FormData) => void;
-  pending: boolean;
-  onBack: () => void;
-  error?: string;
-}) {
-  return (
-    <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
-      <input type="hidden" name="intent" value="submit_overall" />
-      <input type="hidden" name="sessionId" value={sessionId} />
-      <input type="hidden" name="registrationId" value={registrationId} />
-
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Overall Rating</p>
-          <h2 className="text-lg font-bold">How did the program go overall?</h2>
-        </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          ← Back
-        </button>
-      </div>
+      <hr />
+      <p className="text-sm font-medium text-gray-700">A bit about the program overall</p>
 
       <RadioGroup
         label="How satisfied are you with the overall organization (communication, logistics, guidance)?"
         name="organizationSatisfaction"
         options={ORG}
-        defaultValue={prefill.organizationSatisfaction ?? undefined}
+        defaultValue={pre?.organizationSatisfaction ?? undefined}
       />
       <RadioGroup
         label="How likely are you to encourage your child to apply for more Oyster internships in the future?"
         name="encourageMore"
         options={ENCOURAGE}
-        defaultValue={prefill.encourageMore ?? undefined}
+        defaultValue={pre?.encourageMore ?? undefined}
       />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -468,20 +354,19 @@ function OverallForm({
           name="likedAndBetter"
           required
           rows={3}
-          defaultValue={prefill.likedAndBetter ?? ""}
+          defaultValue={pre?.likedAndBetter ?? ""}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Any suggestions to make the Oyster program more impactful?{" "}
-          <span className="text-red-500">*</span>
+          <span className="text-gray-400 font-normal">(optional)</span>
         </label>
         <textarea
           name="suggestions"
-          required
           rows={3}
-          defaultValue={prefill.suggestions ?? ""}
+          defaultValue={pre?.suggestions ?? ""}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         />
       </div>
@@ -494,7 +379,7 @@ function OverallForm({
           disabled={pending}
           className="flex-1 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
         >
-          {pending ? "Saving..." : "Save Overall Rating"}
+          {pending ? "Saving..." : "Save Feedback"}
         </button>
         <button
           type="button"

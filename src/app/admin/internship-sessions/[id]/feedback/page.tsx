@@ -20,13 +20,12 @@ export default async function FeedbackOverviewPage({
 
   const totalRegs = rows.length;
   const withCompanyFeedback = rows.filter((r) => Number(r.companyFeedbackCount) > 0).length;
-  const withSessionFeedback = rows.filter((r) => r.sessionFeedbackSubmitted).length;
 
   return (
     <div>
       <PageHeader
         title={`Feedback: ${session.title}`}
-        subtitle={`${withCompanyFeedback} of ${totalRegs} students have submitted internship feedback · ${withSessionFeedback} session-level submissions`}
+        subtitle={`${withCompanyFeedback} of ${totalRegs} students have submitted feedback`}
         backHref={`/admin/internship-sessions/${id}`}
         backLabel="Back to Session"
         action={
@@ -54,8 +53,7 @@ export default async function FeedbackOverviewPage({
                 <th className="px-4 py-3 font-medium text-gray-500">Roll #</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Phone</th>
-                <th className="px-4 py-3 font-medium text-gray-500">Companies reviewed</th>
-                <th className="px-4 py-3 font-medium text-gray-500">Overall</th>
+                <th className="px-4 py-3 font-medium text-gray-500">Feedback submitted</th>
                 <th className="px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Last update</th>
                 <th className="px-4 py-3 font-medium text-gray-500 text-right">View</th>
               </tr>
@@ -71,17 +69,9 @@ export default async function FeedbackOverviewPage({
                   <td className="px-4 py-3">{r.parentPhone}</td>
                   <td className="px-4 py-3">
                     {Number(r.companyFeedbackCount) > 0 ? (
-                      <span className="font-medium text-green-700">
-                        {Number(r.companyFeedbackCount)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {r.sessionFeedbackSubmitted ? (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        ✓ Done
+                        ✓ {Number(r.companyFeedbackCount)} internship
+                        {Number(r.companyFeedbackCount) === 1 ? "" : "s"}
                       </span>
                     ) : (
                       <span className="text-gray-400">—</span>
@@ -97,7 +87,7 @@ export default async function FeedbackOverviewPage({
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {Number(r.companyFeedbackCount) > 0 || r.sessionFeedbackSubmitted ? (
+                    {Number(r.companyFeedbackCount) > 0 ? (
                       <Link
                         href={`/admin/internship-sessions/${id}/feedback/${r.id}`}
                         className="text-xs text-blue-600 hover:underline"

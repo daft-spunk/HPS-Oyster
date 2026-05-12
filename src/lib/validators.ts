@@ -194,13 +194,8 @@ export const feedbackCompanyEntrySchema = z.object({
   viewChangeLevel: z.enum(VIEW_CHANGE_OPTIONS),
   learningValue: z.enum(LEARNING_VALUE_OPTIONS),
   subjectClarity: z.enum(SUBJECT_CLARITY_OPTIONS),
-});
-
-export const feedbackSubmitSchema = z.object({
-  registrationId: z.string().uuid(),
-  perCompany: z.array(feedbackCompanyEntrySchema).min(1, "Tick at least one internship you attended"),
   organizationSatisfaction: z.enum(ORG_SATISFACTION_OPTIONS),
   encourageMore: z.enum(ENCOURAGE_MORE_OPTIONS),
   likedAndBetter: z.string().min(1, "Please share what you liked and what could be better"),
-  suggestions: z.string().min(1, "Please share at least one suggestion"),
+  suggestions: z.string().optional(),
 });

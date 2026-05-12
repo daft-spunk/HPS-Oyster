@@ -88,11 +88,11 @@ export default async function InternshipRegistrationsPage({
                   <td className="px-4 py-3">{r.parentEmail}</td>
                   <td className="px-4 py-3">{r.parentPhone}</td>
                   <td className="px-4 py-3">
-                    {Number(r.companyFeedbackCount) > 0 || r.sessionFeedbackSubmitted ? (
+                    {Number(r.companyFeedbackCount) > 0 ? (
                       <Link
                         href={`/admin/internship-sessions/${id}/feedback/${r.id}`}
                         className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200"
-                        title={`${Number(r.companyFeedbackCount)} company review(s)${r.sessionFeedbackSubmitted ? " + overall" : ""}`}
+                        title={`${Number(r.companyFeedbackCount)} internship review(s)`}
                       >
                         ✓ {Number(r.companyFeedbackCount)}
                       </Link>

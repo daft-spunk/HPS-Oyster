@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import {
   internshipRegistrations,
   internshipFeedbackCompany,
-  internshipFeedbackSession,
   sessionCompanies,
   companies,
   internshipSessions,
@@ -27,11 +26,10 @@ export async function GET(
     .where(eq(internshipSessions.id, id));
   if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Fetch per-company feedback joined with registration + company
-  const companyRows = await db
+  const rowsData = await db
     .select({
-      regId: internshipRegistrations.id,
       registeredAt: internshipRegistrations.createdAt,
+      submittedAt: internshipFeedbackCompany.updatedAt,
       studentName: internshipRegistrations.studentName,
       classSection: internshipRegistrations.classSection,
       rollNumber: internshipRegistrations.rollNumber,
@@ -45,7 +43,10 @@ export async function GET(
       viewChangeLevel: internshipFeedbackCompany.viewChangeLevel,
       learningValue: internshipFeedbackCompany.learningValue,
       subjectClarity: internshipFeedbackCompany.subjectClarity,
-      submittedAt: internshipFeedbackCompany.updatedAt,
+      organizationSatisfaction: internshipFeedbackCompany.organizationSatisfaction,
+      encourageMore: internshipFeedbackCompany.encourageMore,
+      likedAndBetter: internshipFeedbackCompany.likedAndBetter,
+      suggestions: internshipFeedbackCompany.suggestions,
     })
     .from(internshipFeedbackCompany)
     .innerJoin(
@@ -58,23 +59,6 @@ export async function GET(
     )
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(internshipRegistrations.sessionId, id));
-
-  // Fetch session feedback keyed by registrationId so we can append it
-  const sessionRows = await db
-    .select({
-      regId: internshipFeedbackSession.registrationId,
-      organizationSatisfaction: internshipFeedbackSession.organizationSatisfaction,
-      encourageMore: internshipFeedbackSession.encourageMore,
-      likedAndBetter: internshipFeedbackSession.likedAndBetter,
-      suggestions: internshipFeedbackSession.suggestions,
-    })
-    .from(internshipFeedbackSession)
-    .innerJoin(
-      internshipRegistrations,
-      eq(internshipFeedbackSession.registrationId, internshipRegistrations.id)
-    )
-    .where(eq(internshipRegistrations.sessionId, id));
-  const sessionByReg = new Map(sessionRows.map((r) => [r.regId, r]));
 
   const headers = [
     "Submitted At",
@@ -92,15 +76,14 @@ export async function GET(
     "View Change",
     "Learning Value",
     "Subject Clarity",
-    "Org Satisfaction (overall)",
-    "Encourage More (overall)",
-    "Liked / Better (overall)",
-    "Suggestions (overall)",
+    "Org Satisfaction",
+    "Encourage More",
+    "Liked / Better",
+    "Suggestions",
   ];
 
-  const rows = companyRows.map((c) => {
-    const s = sessionByReg.get(c.regId);
-    return [
+  const rows = rowsData.map((c) =>
+    [
       formatIstForCsv(c.submittedAt),
       formatIstForCsv(c.registeredAt),
       c.studentName,
@@ -116,14 +99,14 @@ export async function GET(
       c.viewChangeLevel,
       c.learningValue,
       c.subjectClarity,
-      s?.organizationSatisfaction ?? "",
-      s?.encourageMore ?? "",
-      s?.likedAndBetter ?? "",
-      s?.suggestions ?? "",
+      c.organizationSatisfaction ?? "",
+      c.encourageMore ?? "",
+      c.likedAndBetter ?? "",
+      c.suggestions ?? "",
     ]
       .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
-      .join(",");
-  });
+      .join(",")
+  );
 
   const csv = [headers.join(","), ...rows].join("\n");
   const filename = `internship-feedback-${session.title.replace(/\s+/g, "-")}.csv`;

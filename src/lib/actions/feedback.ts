@@ -5,21 +5,17 @@ import {
   internshipRegistrations,
   internshipSessions,
   internshipFeedbackCompany,
-  internshipFeedbackSession,
   sessionCompanies,
   companies,
 } from "@/lib/db/schema";
 import {
   feedbackLookupSchema,
   feedbackCompanyEntrySchema,
-  ORG_SATISFACTION_OPTIONS,
-  ENCOURAGE_MORE_OPTIONS,
 } from "@/lib/validators";
 import { isInternshipOver } from "@/lib/format";
 import { isAuthenticated } from "@/lib/auth";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -36,6 +32,10 @@ export interface BoardCompany {
     viewChangeLevel: string;
     learningValue: string;
     subjectClarity: string;
+    organizationSatisfaction: string | null;
+    encourageMore: string | null;
+    likedAndBetter: string | null;
+    suggestions: string | null;
     updatedAt: Date;
   } | null;
 }
@@ -55,13 +55,6 @@ export type FeedbackPhase =
         parentPhone: string;
       };
       eligibleCompanies: BoardCompany[];
-      overall: {
-        organizationSatisfaction: string | null;
-        encourageMore: string | null;
-        likedAndBetter: string | null;
-        suggestions: string | null;
-        updatedAt: Date | null;
-      };
       error?: string;
       flash?: string;
     };
@@ -114,16 +107,15 @@ async function buildBoard(
             viewChangeLevel: f.viewChangeLevel,
             learningValue: f.learningValue,
             subjectClarity: f.subjectClarity,
+            organizationSatisfaction: f.organizationSatisfaction ?? null,
+            encourageMore: f.encourageMore ?? null,
+            likedAndBetter: f.likedAndBetter ?? null,
+            suggestions: f.suggestions ?? null,
             updatedAt: f.updatedAt,
           }
         : null,
     };
   });
-
-  const [existingSession] = await db
-    .select()
-    .from(internshipFeedbackSession)
-    .where(eq(internshipFeedbackSession.registrationId, registrationId));
 
   return {
     phase: "board",
@@ -138,13 +130,6 @@ async function buildBoard(
       parentPhone: reg.parentPhone,
     },
     eligibleCompanies,
-    overall: {
-      organizationSatisfaction: existingSession?.organizationSatisfaction ?? null,
-      encourageMore: existingSession?.encourageMore ?? null,
-      likedAndBetter: existingSession?.likedAndBetter ?? null,
-      suggestions: existingSession?.suggestions ?? null,
-      updatedAt: existingSession?.updatedAt ?? null,
-    },
     error: flashOrError?.error,
     flash: flashOrError?.flash,
   };
@@ -198,6 +183,10 @@ export async function feedbackEntry(
       viewChangeLevel: formData.get("viewChangeLevel"),
       learningValue: formData.get("learningValue"),
       subjectClarity: formData.get("subjectClarity"),
+      organizationSatisfaction: formData.get("organizationSatisfaction"),
+      encourageMore: formData.get("encourageMore"),
+      likedAndBetter: ((formData.get("likedAndBetter") as string) || "").trim(),
+      suggestions: ((formData.get("suggestions") as string) || "").trim() || undefined,
     });
     if (!parsed.success) {
       return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
@@ -221,31 +210,30 @@ export async function feedbackEntry(
       });
     }
 
+    const values = {
+      internshipDate: parsed.data.internshipDate || null,
+      interactivityRating: parsed.data.interactivityRating,
+      speakerRating: parsed.data.speakerRating,
+      keyTakeaway: parsed.data.keyTakeaway,
+      viewChangeLevel: parsed.data.viewChangeLevel,
+      learningValue: parsed.data.learningValue,
+      subjectClarity: parsed.data.subjectClarity,
+      organizationSatisfaction: parsed.data.organizationSatisfaction,
+      encourageMore: parsed.data.encourageMore,
+      likedAndBetter: parsed.data.likedAndBetter,
+      suggestions: parsed.data.suggestions || null,
+    };
+
     await db
       .insert(internshipFeedbackCompany)
       .values({
         registrationId,
         sessionCompanyId,
-        internshipDate: parsed.data.internshipDate || null,
-        interactivityRating: parsed.data.interactivityRating,
-        speakerRating: parsed.data.speakerRating,
-        keyTakeaway: parsed.data.keyTakeaway,
-        viewChangeLevel: parsed.data.viewChangeLevel,
-        learningValue: parsed.data.learningValue,
-        subjectClarity: parsed.data.subjectClarity,
+        ...values,
       })
       .onConflictDoUpdate({
         target: [internshipFeedbackCompany.registrationId, internshipFeedbackCompany.sessionCompanyId],
-        set: {
-          internshipDate: parsed.data.internshipDate || null,
-          interactivityRating: parsed.data.interactivityRating,
-          speakerRating: parsed.data.speakerRating,
-          keyTakeaway: parsed.data.keyTakeaway,
-          viewChangeLevel: parsed.data.viewChangeLevel,
-          learningValue: parsed.data.learningValue,
-          subjectClarity: parsed.data.subjectClarity,
-          updatedAt: new Date(),
-        },
+        set: { ...values, updatedAt: new Date() },
       });
 
     revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
@@ -257,50 +245,10 @@ export async function feedbackEntry(
     });
   }
 
-  if (intent === "submit_overall") {
-    const sessionId = (formData.get("sessionId") as string) || "";
-    const registrationId = (formData.get("registrationId") as string) || "";
-
-    const schema = z.object({
-      organizationSatisfaction: z.enum(ORG_SATISFACTION_OPTIONS),
-      encourageMore: z.enum(ENCOURAGE_MORE_OPTIONS),
-      likedAndBetter: z.string().min(1, "Please share what you liked and what could be better"),
-      suggestions: z.string().min(1, "Please share at least one suggestion"),
-    });
-    const parsed = schema.safeParse({
-      organizationSatisfaction: formData.get("organizationSatisfaction"),
-      encourageMore: formData.get("encourageMore"),
-      likedAndBetter: ((formData.get("likedAndBetter") as string) || "").trim(),
-      suggestions: ((formData.get("suggestions") as string) || "").trim(),
-    });
-    if (!parsed.success) {
-      return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
-    }
-
-    await db
-      .insert(internshipFeedbackSession)
-      .values({
-        registrationId,
-        ...parsed.data,
-      })
-      .onConflictDoUpdate({
-        target: internshipFeedbackSession.registrationId,
-        set: { ...parsed.data, updatedAt: new Date() },
-      });
-
-    revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
-    revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
-    revalidatePath(`/admin/internship-sessions/${sessionId}`);
-
-    return buildBoard(sessionId, registrationId, {
-      flash: "Overall rating saved. Thanks!",
-    });
-  }
-
   return { phase: "lookup", error: "Unknown action" };
 }
 
-// ─── Public: any session with at least one past-date internship? ──────────
+// ─── Public helper: any session with at least one past-date internship? ──
 
 export async function getFeedbackEligibleSession() {
   const [s] = await db
@@ -315,7 +263,7 @@ export async function getFeedbackEligibleSession() {
   return cs.some((c) => isInternshipOver(c.internshipDates)) ? s : null;
 }
 
-// ─── Admin queries (unchanged) ─────────────────────────────────────────────
+// ─── Admin ────────────────────────────────────────────────────────────────
 
 export async function getFeedbackForSession(sessionId: string) {
   if (!(await isAuthenticated())) throw new Error("Unauthorized");
@@ -333,12 +281,6 @@ export async function getFeedbackForSession(sessionId: string) {
         SELECT COUNT(*) FROM internship_feedback_company ifc
         WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
       )`.as("company_feedback_count"),
-      sessionFeedbackSubmitted: sql<boolean>`(
-        SELECT EXISTS(
-          SELECT 1 FROM internship_feedback_session ifs
-          WHERE ifs.registration_id = ${sql.raw('"internship_registrations"."id"')}
-        )
-      )`.as("session_feedback_submitted"),
       lastFeedbackAt: sql<Date | null>`(
         SELECT MAX(ifc.updated_at) FROM internship_feedback_company ifc
         WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
@@ -370,6 +312,10 @@ export async function getFeedbackDetail(registrationId: string) {
       viewChangeLevel: internshipFeedbackCompany.viewChangeLevel,
       learningValue: internshipFeedbackCompany.learningValue,
       subjectClarity: internshipFeedbackCompany.subjectClarity,
+      organizationSatisfaction: internshipFeedbackCompany.organizationSatisfaction,
+      encourageMore: internshipFeedbackCompany.encourageMore,
+      likedAndBetter: internshipFeedbackCompany.likedAndBetter,
+      suggestions: internshipFeedbackCompany.suggestions,
       createdAt: internshipFeedbackCompany.createdAt,
       updatedAt: internshipFeedbackCompany.updatedAt,
     })
@@ -378,10 +324,5 @@ export async function getFeedbackDetail(registrationId: string) {
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(internshipFeedbackCompany.registrationId, registrationId));
 
-  const [session] = await db
-    .select()
-    .from(internshipFeedbackSession)
-    .where(eq(internshipFeedbackSession.registrationId, registrationId));
-
-  return { registration: reg, perCompany, session: session ?? null };
+  return { registration: reg, perCompany };
 }
