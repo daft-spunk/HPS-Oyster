@@ -83,8 +83,9 @@ export default async function InternshipsPage({
 
         <div className="mb-6 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 flex items-center justify-between gap-3 flex-wrap">
           <span>
-            <strong>Submit feedback after each internship.</strong> It&apos;s
-            mandatory to get the participation certificate.
+            <strong>Attended an internship?</strong> Please share your feedback after
+            each one — it&apos;s <strong>mandatory</strong> for the participation
+            certificate.
           </span>
           <Link
             href={`/feedback/${session.slug}`}
