@@ -5,7 +5,6 @@ import {
   internshipRegistrations,
   internshipSessions,
   internshipFeedbackCompany,
-  internshipFeedbackOps,
   sessionCompanies,
   companies,
 } from "@/lib/db/schema";
@@ -13,7 +12,7 @@ import {
   feedbackLookupSchema,
   feedbackPersonalSchema,
   feedbackCompanyEntrySchema,
-  feedbackOpsSchema,
+  feedbackOpsForCompanySchema,
 } from "@/lib/validators";
 import { isInternshipOver } from "@/lib/format";
 import { isAuthenticated } from "@/lib/auth";
@@ -35,6 +34,10 @@ export interface BoardCompany {
     viewChangeLevel: string;
     learningValue: string;
     subjectClarity: string;
+    organizationSatisfaction: string | null;
+    encourageMore: string | null;
+    likedAndBetter: string | null;
+    suggestions: string | null;
     updatedAt: Date;
   } | null;
 }
@@ -54,15 +57,12 @@ export type FeedbackPhase =
         parentPhone: string;
       };
       eligibleCompanies: BoardCompany[];
-      ops: {
-        organizationSatisfaction: string | null;
-        encourageMore: string | null;
-        likedAndBetter: string | null;
-        suggestions: string | null;
-        updatedAt: Date | null;
-      };
       error?: string;
       flash?: string;
+      // After submit_company_section_2 / submit_company_section_3, the client
+      // uses this hint to advance the per-internship wizard.
+      lastSubmittedScId?: string;
+      lastSubmittedStep?: "personal" | "section2" | "section3";
     };
 
 // ─── Helper: build the board view (called after every successful submit) ──
@@ -70,7 +70,12 @@ export type FeedbackPhase =
 async function buildBoard(
   sessionId: string,
   registrationId: string,
-  flashOrError?: { error?: string; flash?: string }
+  extra?: {
+    error?: string;
+    flash?: string;
+    lastSubmittedScId?: string;
+    lastSubmittedStep?: "personal" | "section2" | "section3";
+  }
 ): Promise<FeedbackPhase> {
   const [reg] = await db
     .select()
@@ -113,16 +118,15 @@ async function buildBoard(
             viewChangeLevel: f.viewChangeLevel,
             learningValue: f.learningValue,
             subjectClarity: f.subjectClarity,
+            organizationSatisfaction: f.organizationSatisfaction ?? null,
+            encourageMore: f.encourageMore ?? null,
+            likedAndBetter: f.likedAndBetter ?? null,
+            suggestions: f.suggestions ?? null,
             updatedAt: f.updatedAt,
           }
         : null,
     };
   });
-
-  const [opsRow] = await db
-    .select()
-    .from(internshipFeedbackOps)
-    .where(eq(internshipFeedbackOps.registrationId, registrationId));
 
   return {
     phase: "board",
@@ -137,15 +141,10 @@ async function buildBoard(
       parentPhone: reg.parentPhone,
     },
     eligibleCompanies,
-    ops: {
-      organizationSatisfaction: opsRow?.organizationSatisfaction ?? null,
-      encourageMore: opsRow?.encourageMore ?? null,
-      likedAndBetter: opsRow?.likedAndBetter ?? null,
-      suggestions: opsRow?.suggestions ?? null,
-      updatedAt: opsRow?.updatedAt ?? null,
-    },
-    error: flashOrError?.error,
-    flash: flashOrError?.flash,
+    error: extra?.error,
+    flash: extra?.flash,
+    lastSubmittedScId: extra?.lastSubmittedScId,
+    lastSubmittedStep: extra?.lastSubmittedStep,
   };
 }
 
@@ -185,6 +184,7 @@ export async function feedbackEntry(
 
   const sessionId = (formData.get("sessionId") as string) || "";
   const registrationId = (formData.get("registrationId") as string) || "";
+  const sessionCompanyId = (formData.get("sessionCompanyId") as string) || "";
 
   if (intent === "submit_personal") {
     const parsed = feedbackPersonalSchema.safeParse({
@@ -194,7 +194,10 @@ export async function feedbackEntry(
       parentPhone: ((formData.get("parentPhone") as string) || "").trim(),
     });
     if (!parsed.success) {
-      return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
+      return buildBoard(sessionId, registrationId, {
+        error: parsed.error.issues[0].message,
+        lastSubmittedScId: sessionCompanyId || undefined,
+      });
     }
     await db
       .update(internshipRegistrations)
@@ -203,11 +206,12 @@ export async function feedbackEntry(
     revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
     return buildBoard(sessionId, registrationId, {
       flash: "Personal details saved.",
+      lastSubmittedScId: sessionCompanyId || undefined,
+      lastSubmittedStep: "personal",
     });
   }
 
-  if (intent === "submit_company") {
-    const sessionCompanyId = (formData.get("sessionCompanyId") as string) || "";
+  if (intent === "submit_section_2") {
     const parsed = feedbackCompanyEntrySchema.safeParse({
       sessionCompanyId,
       internshipDate: (formData.get("internshipDate") as string) || undefined,
@@ -219,9 +223,11 @@ export async function feedbackEntry(
       subjectClarity: formData.get("subjectClarity"),
     });
     if (!parsed.success) {
-      return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
+      return buildBoard(sessionId, registrationId, {
+        error: parsed.error.issues[0].message,
+        lastSubmittedScId: sessionCompanyId,
+      });
     }
-
     const [sc] = await db
       .select({
         id: sessionCompanies.id,
@@ -231,14 +237,17 @@ export async function feedbackEntry(
       .from(sessionCompanies)
       .where(eq(sessionCompanies.id, sessionCompanyId));
     if (!sc || sc.sessionId !== sessionId) {
-      return buildBoard(sessionId, registrationId, { error: "Invalid internship" });
+      return buildBoard(sessionId, registrationId, {
+        error: "Invalid internship",
+        lastSubmittedScId: sessionCompanyId,
+      });
     }
     if (!isInternshipOver(sc.internshipDates)) {
       return buildBoard(sessionId, registrationId, {
         error: "Feedback can only be given for internships that have already happened",
+        lastSubmittedScId: sessionCompanyId,
       });
     }
-
     const values = {
       internshipDate: parsed.data.internshipDate || null,
       interactivityRating: parsed.data.interactivityRating,
@@ -248,7 +257,6 @@ export async function feedbackEntry(
       learningValue: parsed.data.learningValue,
       subjectClarity: parsed.data.subjectClarity,
     };
-
     await db
       .insert(internshipFeedbackCompany)
       .values({ registrationId, sessionCompanyId, ...values })
@@ -256,40 +264,64 @@ export async function feedbackEntry(
         target: [internshipFeedbackCompany.registrationId, internshipFeedbackCompany.sessionCompanyId],
         set: { ...values, updatedAt: new Date() },
       });
-
     revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
     revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
     revalidatePath(`/admin/internship-sessions/${sessionId}`);
-
-    return buildBoard(sessionId, registrationId, { flash: "Internship feedback saved." });
+    return buildBoard(sessionId, registrationId, {
+      flash: "Internship feedback saved.",
+      lastSubmittedScId: sessionCompanyId,
+      lastSubmittedStep: "section2",
+    });
   }
 
-  if (intent === "submit_ops") {
-    const parsed = feedbackOpsSchema.safeParse({
+  if (intent === "submit_section_3") {
+    const parsed = feedbackOpsForCompanySchema.safeParse({
+      sessionCompanyId,
       organizationSatisfaction: formData.get("organizationSatisfaction"),
       encourageMore: formData.get("encourageMore"),
       likedAndBetter: ((formData.get("likedAndBetter") as string) || "").trim(),
       suggestions: ((formData.get("suggestions") as string) || "").trim() || undefined,
     });
     if (!parsed.success) {
-      return buildBoard(sessionId, registrationId, { error: parsed.error.issues[0].message });
-    }
-    const values = {
-      organizationSatisfaction: parsed.data.organizationSatisfaction,
-      encourageMore: parsed.data.encourageMore,
-      likedAndBetter: parsed.data.likedAndBetter,
-      suggestions: parsed.data.suggestions || null,
-    };
-    await db
-      .insert(internshipFeedbackOps)
-      .values({ registrationId, ...values })
-      .onConflictDoUpdate({
-        target: internshipFeedbackOps.registrationId,
-        set: { ...values, updatedAt: new Date() },
+      return buildBoard(sessionId, registrationId, {
+        error: parsed.error.issues[0].message,
+        lastSubmittedScId: sessionCompanyId,
       });
+    }
+    // Update only the section 3 fields on the existing feedback_company row
+    // for this (registration, sessionCompany). If for some reason the row
+    // doesn't exist yet, refuse — section 2 must be submitted first.
+    const [existing] = await db
+      .select({ id: internshipFeedbackCompany.id })
+      .from(internshipFeedbackCompany)
+      .where(
+        sql`${internshipFeedbackCompany.registrationId} = ${registrationId}
+          AND ${internshipFeedbackCompany.sessionCompanyId} = ${sessionCompanyId}`
+      );
+    if (!existing) {
+      return buildBoard(sessionId, registrationId, {
+        error: "Please fill the internship feedback first",
+        lastSubmittedScId: sessionCompanyId,
+      });
+    }
+    await db
+      .update(internshipFeedbackCompany)
+      .set({
+        organizationSatisfaction: parsed.data.organizationSatisfaction,
+        encourageMore: parsed.data.encourageMore,
+        likedAndBetter: parsed.data.likedAndBetter,
+        suggestions: parsed.data.suggestions || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(internshipFeedbackCompany.id, existing.id));
     revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
+    revalidatePath(`/admin/internship-sessions/${sessionId}/registrations`);
     revalidatePath(`/admin/internship-sessions/${sessionId}`);
-    return buildBoard(sessionId, registrationId, { flash: "Program feedback saved." });
+    return buildBoard(sessionId, registrationId, {
+      flash: "Program feedback saved. Thanks!",
+      lastSubmittedScId: sessionCompanyId,
+      lastSubmittedStep: "section3",
+    });
   }
 
   return { phase: "lookup", error: "Unknown action" };
@@ -324,21 +356,22 @@ export async function getFeedbackForSession(sessionId: string) {
       parentEmail: internshipRegistrations.parentEmail,
       parentPhone: internshipRegistrations.parentPhone,
       createdAt: internshipRegistrations.createdAt,
-      companyFeedbackCount: sql<number>`(
+      // # of internships with section 2 done (any feedback_company row)
+      section2Count: sql<number>`(
         SELECT COUNT(*) FROM internship_feedback_company ifc
         WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
-      )`.as("company_feedback_count"),
-      opsFeedbackSubmitted: sql<boolean>`(
-        SELECT EXISTS(
-          SELECT 1 FROM internship_feedback_ops ifo
-          WHERE ifo.registration_id = ${sql.raw('"internship_registrations"."id"')}
-        )
-      )`.as("ops_feedback_submitted"),
-      lastFeedbackAt: sql<Date | null>`GREATEST(
-        (SELECT MAX(ifc.updated_at) FROM internship_feedback_company ifc
-          WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}),
-        (SELECT MAX(ifo.updated_at) FROM internship_feedback_ops ifo
-          WHERE ifo.registration_id = ${sql.raw('"internship_registrations"."id"')})
+      )`.as("section_2_count"),
+      // # of internships where the full flow (section 2 + section 3) is done
+      completeCount: sql<number>`(
+        SELECT COUNT(*) FROM internship_feedback_company ifc
+        WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
+          AND ifc.organization_satisfaction IS NOT NULL
+          AND ifc.encourage_more IS NOT NULL
+          AND ifc.liked_and_better IS NOT NULL
+      )`.as("complete_count"),
+      lastFeedbackAt: sql<Date | null>`(
+        SELECT MAX(ifc.updated_at) FROM internship_feedback_company ifc
+        WHERE ifc.registration_id = ${sql.raw('"internship_registrations"."id"')}
       )`.as("last_feedback_at"),
     })
     .from(internshipRegistrations)
@@ -367,6 +400,10 @@ export async function getFeedbackDetail(registrationId: string) {
       viewChangeLevel: internshipFeedbackCompany.viewChangeLevel,
       learningValue: internshipFeedbackCompany.learningValue,
       subjectClarity: internshipFeedbackCompany.subjectClarity,
+      organizationSatisfaction: internshipFeedbackCompany.organizationSatisfaction,
+      encourageMore: internshipFeedbackCompany.encourageMore,
+      likedAndBetter: internshipFeedbackCompany.likedAndBetter,
+      suggestions: internshipFeedbackCompany.suggestions,
       createdAt: internshipFeedbackCompany.createdAt,
       updatedAt: internshipFeedbackCompany.updatedAt,
     })
@@ -375,10 +412,5 @@ export async function getFeedbackDetail(registrationId: string) {
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(internshipFeedbackCompany.registrationId, registrationId));
 
-  const [ops] = await db
-    .select()
-    .from(internshipFeedbackOps)
-    .where(eq(internshipFeedbackOps.registrationId, registrationId));
-
-  return { registration: reg, perCompany, ops: ops ?? null };
+  return { registration: reg, perCompany };
 }

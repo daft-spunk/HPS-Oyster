@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   feedbackEntry,
   type FeedbackPhase,
@@ -41,30 +41,64 @@ const ENCOURAGE = [
   { value: "definitely_not", label: "Definitely will not" },
 ];
 
-type Step = "personal" | "internships" | "ops";
-type View = { step: Step } | { step: "internships"; focus: string };
+// What stage of the per-internship wizard is the student on?
+type SubStep = "personal" | "section2" | "section3";
+
+// Client view state
+type View = { kind: "board" } | { kind: "wizard"; scId: string; subStep: SubStep };
+
+function isCompanyComplete(c: BoardCompany): boolean {
+  return !!(
+    c.feedback &&
+    c.feedback.organizationSatisfaction &&
+    c.feedback.encourageMore &&
+    c.feedback.likedAndBetter
+  );
+}
+
+function defaultSubStep(c: BoardCompany | undefined): SubStep {
+  if (!c) return "personal";
+  if (!c.feedback) return "personal";
+  // If section 2 is filled but section 3 isn't, jump to section 3
+  if (!c.feedback.organizationSatisfaction) return "section3";
+  // All done — start at personal so editing always lets you confirm details
+  return "personal";
+}
 
 export function FeedbackForm({ sessionId }: { sessionId: string }) {
   const [state, formAction, pending] = useActionState<FeedbackPhase | null, FormData>(
     feedbackEntry,
     null
   );
-  const [view, setView] = useState<View>({ step: "personal" });
+  const [view, setView] = useState<View>({ kind: "board" });
 
-  // After lookup succeeds, start the wizard at personal step
-  // After any successful submit, return to that step's home view (clear focus)
+  // Advance the wizard after each successful submit. Use refs to consume
+  // each server response only once so we don't re-advance on subsequent
+  // unrelated re-renders.
+  const lastConsumedRef = useRef<{ scId?: string; step?: string } | null>(null);
   useEffect(() => {
-    if (state?.phase === "board" && !state.error) {
-      setView((v) => {
-        // If a flash exists, advance to the next step automatically
-        if (state.flash === "Personal details saved.") return { step: "internships" };
-        if (state.flash === "Program feedback saved.") return { step: "ops" };
-        // For internship submits, drop the focus so we return to the list
-        if (v.step === "internships" && "focus" in v) return { step: "internships" };
-        return v;
-      });
+    if (state?.phase !== "board" || state.error) return;
+    if (!state.lastSubmittedScId || !state.lastSubmittedStep) return;
+    if (view.kind !== "wizard") return;
+    if (state.lastSubmittedScId !== view.scId) return;
+
+    const sig = { scId: state.lastSubmittedScId, step: state.lastSubmittedStep };
+    if (
+      lastConsumedRef.current?.scId === sig.scId &&
+      lastConsumedRef.current?.step === sig.step
+    ) {
+      return; // already handled this server response
     }
-  }, [state]);
+    lastConsumedRef.current = sig;
+
+    if (state.lastSubmittedStep === "personal") {
+      setView({ kind: "wizard", scId: view.scId, subStep: "section2" });
+    } else if (state.lastSubmittedStep === "section2") {
+      setView({ kind: "wizard", scId: view.scId, subStep: "section3" });
+    } else if (state.lastSubmittedStep === "section3") {
+      setView({ kind: "board" });
+    }
+  }, [state, view]);
 
   // ── Lookup phase ─────────────────────────────────────────────────────
   if (!state || state.phase === "lookup") {
@@ -114,27 +148,71 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
     );
   }
 
-  // ── Wizard ───────────────────────────────────────────────────────────
-  const personalDone = !!(
-    state.registration.studentName &&
-    state.registration.parentName &&
-    state.registration.parentEmail &&
-    state.registration.parentPhone
-  );
-  const internshipsDone =
-    state.eligibleCompanies.length > 0 &&
-    state.eligibleCompanies.every((c) => c.feedback);
-  const opsDone = !!state.ops.updatedAt;
+  // ── Per-internship wizard ───────────────────────────────────────────
+  if (view.kind === "wizard") {
+    const company = state.eligibleCompanies.find((c) => c.sessionCompanyId === view.scId);
+    if (!company) {
+      setView({ kind: "board" });
+      return null;
+    }
+    return (
+      <div className="space-y-4">
+        {state.flash && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
+            {state.flash}
+          </p>
+        )}
+        <WizardHeader
+          company={company}
+          subStep={view.subStep}
+          onJump={(s) => setView({ kind: "wizard", scId: view.scId, subStep: s })}
+          onBackToBoard={() => setView({ kind: "board" })}
+        />
+        {view.subStep === "personal" && (
+          <PersonalForm
+            state={state}
+            scId={view.scId}
+            formAction={formAction}
+            pending={pending}
+            error={state.error}
+          />
+        )}
+        {view.subStep === "section2" && (
+          <Section2Form
+            state={state}
+            company={company}
+            formAction={formAction}
+            pending={pending}
+            error={state.error}
+          />
+        )}
+        {view.subStep === "section3" && (
+          <Section3Form
+            state={state}
+            company={company}
+            formAction={formAction}
+            pending={pending}
+            error={state.error}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── Board view ───────────────────────────────────────────────────────
+  const completed = state.eligibleCompanies.filter(isCompanyComplete).length;
+  const allDone =
+    state.eligibleCompanies.length > 0 && completed === state.eligibleCompanies.length;
 
   return (
     <div className="space-y-5">
-      <Stepper
-        currentStep={view.step}
-        onJump={(s) => setView({ step: s })}
-        personalDone={personalDone}
-        internshipsDone={internshipsDone}
-        opsDone={opsDone}
-      />
+      <div className="bg-white border rounded-lg p-5">
+        <p className="text-sm text-gray-500">Welcome,</p>
+        <h2 className="text-xl font-bold">{state.registration.studentName}</h2>
+        <p className="text-xs text-gray-500 mt-1">
+          {state.registration.classSection} · Roll {state.registration.rollNumber}
+        </p>
+      </div>
 
       {state.flash && (
         <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
@@ -142,100 +220,150 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
         </p>
       )}
 
-      {view.step === "personal" && (
-        <PersonalForm
-          state={state}
-          formAction={formAction}
-          pending={pending}
-          error={state.error}
-        />
+      {allDone && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 text-center">
+          <p className="text-emerald-800 font-bold text-lg mb-1">
+            🎉 All feedback complete
+          </p>
+          <p className="text-emerald-700 text-sm">
+            You&apos;re eligible for the participation certificate. You can still
+            update any internship&apos;s feedback if you&apos;d like.
+          </p>
+        </div>
       )}
-      {view.step === "internships" && "focus" in view && (
-        <CompanyForm
-          sessionId={state.sessionId}
-          registrationId={state.registration.id}
-          company={state.eligibleCompanies.find((c) => c.sessionCompanyId === view.focus)!}
-          formAction={formAction}
-          pending={pending}
-          onBack={() => setView({ step: "internships" })}
-          error={state.error}
-        />
-      )}
-      {view.step === "internships" && !("focus" in view) && (
-        <InternshipBoard
-          state={state}
-          onPickCompany={(scId) => setView({ step: "internships", focus: scId })}
-          onContinue={() => setView({ step: "ops" })}
-        />
-      )}
-      {view.step === "ops" && (
-        <OpsForm
-          state={state}
-          formAction={formAction}
-          pending={pending}
-          error={state.error}
-          allDone={personalDone && internshipsDone && opsDone}
-        />
-      )}
+
+      <div className="bg-white border rounded-lg overflow-hidden">
+        <div className="px-5 py-3 border-b bg-gray-50">
+          <h3 className="font-semibold text-sm text-gray-700">Your internships</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Pick the internships your child actually attended and fill out feedback
+            for each. {state.eligibleCompanies.length === 0
+              ? "None have happened yet."
+              : `${completed} of ${state.eligibleCompanies.length} complete.`}
+          </p>
+        </div>
+        {state.eligibleCompanies.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-gray-500 italic text-center">
+            Once any internship date passes, it&apos;ll show up here.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {state.eligibleCompanies.map((c) => {
+              const complete = isCompanyComplete(c);
+              const inProgress = !!c.feedback && !complete;
+              const startStep = defaultSubStep(c);
+              return (
+                <li key={c.sessionCompanyId} className="px-5 py-4 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{c.name}</p>
+                    <p className="text-xs text-gray-500">{c.sector}</p>
+                    {complete ? (
+                      <p className="text-xs text-emerald-700 mt-1">
+                        ✓ Submitted{" "}
+                        {c.feedback!.updatedAt &&
+                          new Date(c.feedback!.updatedAt).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            timeZone: "Asia/Kolkata",
+                          })}
+                      </p>
+                    ) : inProgress ? (
+                      <p className="text-xs text-amber-700 mt-1">⌛ In progress</p>
+                    ) : (
+                      <p className="text-xs text-gray-400 mt-1">⌛ Not started</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setView({
+                        kind: "wizard",
+                        scId: c.sessionCompanyId,
+                        subStep: startStep,
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      complete
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-primary text-white hover:bg-primary-light"
+                    }`}
+                  >
+                    {complete ? "Edit" : inProgress ? "Continue" : "Give feedback"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Stepper ─────────────────────────────────────────────────────────────
+// ─── Wizard header ──────────────────────────────────────────────────────
 
-function Stepper({
-  currentStep,
+function WizardHeader({
+  company,
+  subStep,
   onJump,
-  personalDone,
-  internshipsDone,
-  opsDone,
+  onBackToBoard,
 }: {
-  currentStep: Step;
-  onJump: (s: Step) => void;
-  personalDone: boolean;
-  internshipsDone: boolean;
-  opsDone: boolean;
+  company: BoardCompany;
+  subStep: SubStep;
+  onJump: (s: SubStep) => void;
+  onBackToBoard: () => void;
 }) {
-  const steps: { id: Step; label: string; done: boolean }[] = [
-    { id: "personal", label: "1. Personal details", done: personalDone },
-    { id: "internships", label: "2. Internship feedback", done: internshipsDone },
-    { id: "ops", label: "3. Program feedback", done: opsDone },
+  const steps: { id: SubStep; label: string }[] = [
+    { id: "personal", label: "1. Personal" },
+    { id: "section2", label: "2. Internship feedback" },
+    { id: "section3", label: "3. Program feedback" },
   ];
   return (
-    <div className="bg-white border rounded-lg p-2 flex gap-1 text-xs overflow-x-auto">
-      {steps.map((s) => {
-        const active = s.id === currentStep;
-        return (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => onJump(s.id)}
-            className={`flex-1 min-w-fit px-3 py-2 rounded-md font-medium transition whitespace-nowrap ${
-              active
-                ? "bg-primary text-white"
-                : s.done
-                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {s.done && !active && "✓ "}
-            {s.label}
-          </button>
-        );
-      })}
+    <div>
+      <button
+        type="button"
+        onClick={onBackToBoard}
+        className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+      >
+        ← Back to all internships
+      </button>
+      <div className="bg-white border rounded-lg p-4 mb-2">
+        <p className="text-xs text-gray-500 uppercase tracking-wide">Internship</p>
+        <h2 className="text-lg font-bold">{company.name}</h2>
+        <p className="text-xs text-gray-500">{company.sector}</p>
+      </div>
+      <div className="bg-white border rounded-lg p-2 flex gap-1 text-xs overflow-x-auto">
+        {steps.map((s) => {
+          const active = s.id === subStep;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onJump(s.id)}
+              className={`flex-1 min-w-fit px-3 py-2 rounded-md font-medium transition whitespace-nowrap ${
+                active ? "bg-primary text-white" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ─── Section 1: Personal details ────────────────────────────────────────
+// ─── Sub-step 1: Personal ───────────────────────────────────────────────
 
 function PersonalForm({
   state,
+  scId,
   formAction,
   pending,
   error,
 }: {
   state: Extract<FeedbackPhase, { phase: "board" }>;
+  scId: string;
   formAction: (formData: FormData) => void;
   pending: boolean;
   error?: string;
@@ -245,9 +373,10 @@ function PersonalForm({
       <input type="hidden" name="intent" value="submit_personal" />
       <input type="hidden" name="sessionId" value={state.sessionId} />
       <input type="hidden" name="registrationId" value={state.registration.id} />
+      <input type="hidden" name="sessionCompanyId" value={scId} />
 
       <div>
-        <h2 className="text-lg font-bold mb-1">Personal details</h2>
+        <h2 className="text-base font-bold mb-1">Personal details</h2>
         <p className="text-sm text-gray-600">
           Confirm and edit these as needed. <strong>The student name below is what
           will appear on the participation certificate</strong> — please make sure the
@@ -340,122 +469,30 @@ function PersonalForm({
   );
 }
 
-// ─── Section 2: Internship board ────────────────────────────────────────
+// ─── Sub-step 2: Internship feedback (section 2) ────────────────────────
 
-function InternshipBoard({
+function Section2Form({
   state,
-  onPickCompany,
-  onContinue,
-}: {
-  state: Extract<FeedbackPhase, { phase: "board" }>;
-  onPickCompany: (scId: string) => void;
-  onContinue: () => void;
-}) {
-  const reviewed = state.eligibleCompanies.filter((c) => c.feedback).length;
-  return (
-    <div className="space-y-4">
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <div className="px-5 py-3 border-b bg-gray-50">
-          <h3 className="font-semibold text-base text-gray-900">Internship feedback</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Click &quot;Give feedback&quot; only for the internships your child actually
-            attended.{" "}
-            {state.eligibleCompanies.length === 0
-              ? "None of the internships in this session have happened yet."
-              : `${reviewed} of ${state.eligibleCompanies.length} reviewed.`}
-          </p>
-        </div>
-        {state.eligibleCompanies.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-gray-500 italic text-center">
-            Once any internship date passes, it&apos;ll show up here for feedback.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {state.eligibleCompanies.map((c) => (
-              <li key={c.sessionCompanyId} className="px-5 py-4 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">{c.name}</p>
-                  <p className="text-xs text-gray-500">{c.sector}</p>
-                  {c.feedback ? (
-                    <p className="text-xs text-emerald-700 mt-1">
-                      ✓ Submitted{" "}
-                      {new Date(c.feedback.updatedAt).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        timeZone: "Asia/Kolkata",
-                      })}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-1">⌛ Not submitted</p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onPickCompany(c.sessionCompanyId)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    c.feedback
-                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      : "bg-primary text-white hover:bg-primary-light"
-                  }`}
-                >
-                  {c.feedback ? "Edit" : "Give feedback"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <button
-        type="button"
-        onClick={onContinue}
-        className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition"
-      >
-        Continue to program feedback →
-      </button>
-    </div>
-  );
-}
-
-function CompanyForm({
-  sessionId,
-  registrationId,
   company,
   formAction,
   pending,
-  onBack,
   error,
 }: {
-  sessionId: string;
-  registrationId: string;
+  state: Extract<FeedbackPhase, { phase: "board" }>;
   company: BoardCompany;
   formAction: (formData: FormData) => void;
   pending: boolean;
-  onBack: () => void;
   error?: string;
 }) {
   const pre = company.feedback;
   return (
     <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
-      <input type="hidden" name="intent" value="submit_company" />
-      <input type="hidden" name="sessionId" value={sessionId} />
-      <input type="hidden" name="registrationId" value={registrationId} />
+      <input type="hidden" name="intent" value="submit_section_2" />
+      <input type="hidden" name="sessionId" value={state.sessionId} />
+      <input type="hidden" name="registrationId" value={state.registration.id} />
       <input type="hidden" name="sessionCompanyId" value={company.sessionCompanyId} />
 
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Internship</p>
-          <h2 className="text-lg font-bold">{company.name}</h2>
-          <p className="text-xs text-gray-500">{company.sector}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          ← Back
-        </button>
-      </div>
+      <h2 className="text-base font-bold">Internship feedback</h2>
 
       {company.internshipDates && company.internshipDates.length > 1 && (
         <div>
@@ -534,117 +571,96 @@ function CompanyForm({
 
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
-        >
-          {pending ? "Saving..." : "Save Feedback"}
-        </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-        >
-          Cancel
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
+      >
+        {pending ? "Saving..." : "Save and continue →"}
+      </button>
     </form>
   );
 }
 
-// ─── Section 3: Ops feedback ────────────────────────────────────────────
+// ─── Sub-step 3: Program / ops feedback (section 3) ─────────────────────
 
-function OpsForm({
+function Section3Form({
   state,
+  company,
   formAction,
   pending,
   error,
-  allDone,
 }: {
   state: Extract<FeedbackPhase, { phase: "board" }>;
+  company: BoardCompany;
   formAction: (formData: FormData) => void;
   pending: boolean;
   error?: string;
-  allDone: boolean;
 }) {
+  const pre = company.feedback;
   return (
-    <>
-      {allDone && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 text-center">
-          <p className="text-emerald-800 font-bold text-lg mb-1">
-            🎉 All feedback complete
-          </p>
-          <p className="text-emerald-700 text-sm">
-            You&apos;re eligible for the participation certificate. You can still
-            update any section if you&apos;d like.
-          </p>
-        </div>
-      )}
+    <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
+      <input type="hidden" name="intent" value="submit_section_3" />
+      <input type="hidden" name="sessionId" value={state.sessionId} />
+      <input type="hidden" name="registrationId" value={state.registration.id} />
+      <input type="hidden" name="sessionCompanyId" value={company.sessionCompanyId} />
 
-      <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
-        <input type="hidden" name="intent" value="submit_ops" />
-        <input type="hidden" name="sessionId" value={state.sessionId} />
-        <input type="hidden" name="registrationId" value={state.registration.id} />
+      <div>
+        <h2 className="text-base font-bold">Program / operations feedback</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          How the Oyster program ran overall — communication, logistics, and your ideas
+          for next time.
+        </p>
+      </div>
 
-        <div>
-          <h2 className="text-lg font-bold">Program / operations feedback</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            How the Oyster program ran overall — communication, logistics, and your
-            ideas for next time.
-          </p>
-        </div>
-
-        <RadioGroup
-          label="How satisfied are you with the overall organization (communication, logistics, guidance)?"
-          name="organizationSatisfaction"
-          options={ORG}
-          defaultValue={state.ops.organizationSatisfaction ?? undefined}
+      <RadioGroup
+        label="How satisfied are you with the overall organization (communication, logistics, guidance)?"
+        name="organizationSatisfaction"
+        options={ORG}
+        defaultValue={pre?.organizationSatisfaction ?? undefined}
+      />
+      <RadioGroup
+        label="How likely are you to encourage your child to apply for more Oyster internships in the future?"
+        name="encourageMore"
+        options={ENCOURAGE}
+        defaultValue={pre?.encourageMore ?? undefined}
+      />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          One thing the student liked, and one thing that can be done better.{" "}
+          <span className="text-red-500">*</span>
+        </label>
+        <textarea
+          name="likedAndBetter"
+          required
+          rows={3}
+          defaultValue={pre?.likedAndBetter ?? ""}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         />
-        <RadioGroup
-          label="How likely are you to encourage your child to apply for more Oyster internships in the future?"
-          name="encourageMore"
-          options={ENCOURAGE}
-          defaultValue={state.ops.encourageMore ?? undefined}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Any suggestions to make the Oyster program more impactful?{" "}
+          <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <textarea
+          name="suggestions"
+          rows={3}
+          defaultValue={pre?.suggestions ?? ""}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         />
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            One thing the student liked, and one thing that can be done better.{" "}
-            <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            name="likedAndBetter"
-            required
-            rows={3}
-            defaultValue={state.ops.likedAndBetter ?? ""}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Any suggestions to make the Oyster program more impactful?{" "}
-            <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <textarea
-            name="suggestions"
-            rows={3}
-            defaultValue={state.ops.suggestions ?? ""}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          />
-        </div>
+      </div>
 
-        {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
-        >
-          {pending ? "Saving..." : "Save program feedback"}
-        </button>
-      </form>
-    </>
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
+      >
+        {pending ? "Saving..." : "Finish this internship"}
+      </button>
+    </form>
   );
 }
 

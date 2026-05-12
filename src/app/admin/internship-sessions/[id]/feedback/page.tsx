@@ -19,13 +19,14 @@ export default async function FeedbackOverviewPage({
   if (!session) notFound();
 
   const totalRegs = rows.length;
-  const withCompanyFeedback = rows.filter((r) => Number(r.companyFeedbackCount) > 0).length;
+  const withAnyFeedback = rows.filter((r) => Number(r.section2Count) > 0).length;
+  const withCompleteFeedback = rows.filter((r) => Number(r.completeCount) > 0).length;
 
   return (
     <div>
       <PageHeader
         title={`Feedback: ${session.title}`}
-        subtitle={`${withCompanyFeedback} of ${totalRegs} students have submitted feedback`}
+        subtitle={`${withCompleteFeedback} of ${totalRegs} students have a complete feedback (any internship); ${withAnyFeedback} have at least started`}
         backHref={`/admin/internship-sessions/${id}`}
         backLabel="Back to Session"
         action={
@@ -70,8 +71,8 @@ export default async function FeedbackOverviewPage({
                 <th className="px-4 py-3 font-medium text-gray-500">Roll #</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Phone</th>
-                <th className="px-4 py-3 font-medium text-gray-500">Internship feedback</th>
-                <th className="px-4 py-3 font-medium text-gray-500">Program feedback</th>
+                <th className="px-4 py-3 font-medium text-gray-500">Complete feedback</th>
+                <th className="px-4 py-3 font-medium text-gray-500">In progress</th>
                 <th className="px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Last update</th>
                 <th className="px-4 py-3 font-medium text-gray-500 text-right">View</th>
               </tr>
@@ -86,19 +87,19 @@ export default async function FeedbackOverviewPage({
                   <td className="px-4 py-3">{r.parentEmail}</td>
                   <td className="px-4 py-3">{r.parentPhone}</td>
                   <td className="px-4 py-3">
-                    {Number(r.companyFeedbackCount) > 0 ? (
+                    {Number(r.completeCount) > 0 ? (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        ✓ {Number(r.companyFeedbackCount)} internship
-                        {Number(r.companyFeedbackCount) === 1 ? "" : "s"}
+                        ✓ {Number(r.completeCount)} internship
+                        {Number(r.completeCount) === 1 ? "" : "s"}
                       </span>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {r.opsFeedbackSubmitted ? (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        ✓ Done
+                    {Number(r.section2Count) - Number(r.completeCount) > 0 ? (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium">
+                        ⌛ {Number(r.section2Count) - Number(r.completeCount)}
                       </span>
                     ) : (
                       <span className="text-gray-400">—</span>
@@ -114,7 +115,7 @@ export default async function FeedbackOverviewPage({
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {Number(r.companyFeedbackCount) > 0 || r.opsFeedbackSubmitted ? (
+                    {Number(r.section2Count) > 0 ? (
                       <Link
                         href={`/admin/internship-sessions/${id}/feedback/${r.id}`}
                         className="text-xs text-blue-600 hover:underline"

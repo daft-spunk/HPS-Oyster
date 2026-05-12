@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import {
   internshipRegistrations,
   internshipFeedbackCompany,
-  internshipFeedbackOps,
   sessionCompanies,
   companies,
   internshipSessions,
@@ -27,7 +26,6 @@ export async function GET(
     .where(eq(internshipSessions.id, id));
   if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Per-company rows joined with the optional ops feedback for the same registration.
   const rowsData = await db
     .select({
       registeredAt: internshipRegistrations.createdAt,
@@ -46,10 +44,10 @@ export async function GET(
       viewChangeLevel: internshipFeedbackCompany.viewChangeLevel,
       learningValue: internshipFeedbackCompany.learningValue,
       subjectClarity: internshipFeedbackCompany.subjectClarity,
-      opsOrgSatisfaction: internshipFeedbackOps.organizationSatisfaction,
-      opsEncourageMore: internshipFeedbackOps.encourageMore,
-      opsLikedAndBetter: internshipFeedbackOps.likedAndBetter,
-      opsSuggestions: internshipFeedbackOps.suggestions,
+      organizationSatisfaction: internshipFeedbackCompany.organizationSatisfaction,
+      encourageMore: internshipFeedbackCompany.encourageMore,
+      likedAndBetter: internshipFeedbackCompany.likedAndBetter,
+      suggestions: internshipFeedbackCompany.suggestions,
     })
     .from(internshipFeedbackCompany)
     .innerJoin(
@@ -61,10 +59,6 @@ export async function GET(
       eq(internshipFeedbackCompany.sessionCompanyId, sessionCompanies.id)
     )
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
-    .leftJoin(
-      internshipFeedbackOps,
-      eq(internshipFeedbackOps.registrationId, internshipRegistrations.id)
-    )
     .where(eq(internshipRegistrations.sessionId, id));
 
   const headers = [
@@ -84,14 +78,17 @@ export async function GET(
     "View Change",
     "Learning Value",
     "Subject Clarity",
-    "Ops: Org Satisfaction",
-    "Ops: Encourage More",
-    "Ops: Liked / Better",
-    "Ops: Suggestions",
+    "Org Satisfaction",
+    "Encourage More",
+    "Liked / Better",
+    "Suggestions",
+    "Complete?",
   ];
 
-  const rows = rowsData.map((c) =>
-    [
+  const rows = rowsData.map((c) => {
+    const complete =
+      c.organizationSatisfaction && c.encourageMore && c.likedAndBetter ? "Yes" : "No";
+    return [
       formatIstForCsv(c.submittedAt),
       formatIstForCsv(c.registeredAt),
       c.studentName,
@@ -108,14 +105,15 @@ export async function GET(
       c.viewChangeLevel,
       c.learningValue,
       c.subjectClarity,
-      c.opsOrgSatisfaction ?? "",
-      c.opsEncourageMore ?? "",
-      c.opsLikedAndBetter ?? "",
-      c.opsSuggestions ?? "",
+      c.organizationSatisfaction ?? "",
+      c.encourageMore ?? "",
+      c.likedAndBetter ?? "",
+      c.suggestions ?? "",
+      complete,
     ]
       .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
-      .join(",")
-  );
+      .join(",");
+  });
 
   const csv = [headers.join(","), ...rows].join("\n");
   const filename = `internship-feedback-${session.title.replace(/\s+/g, "-")}.csv`;

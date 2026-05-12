@@ -210,7 +210,10 @@ export const feedbackCompanyEntrySchema = z.object({
   subjectClarity: z.enum(SUBJECT_CLARITY_OPTIONS),
 });
 
-export const feedbackOpsSchema = z.object({
+// Per-internship section 3 (ops) response. Saved onto the same feedback_company
+// row as the section 2 response (one per (registration, sessionCompany)).
+export const feedbackOpsForCompanySchema = z.object({
+  sessionCompanyId: z.string().uuid(),
   organizationSatisfaction: z.enum(ORG_SATISFACTION_OPTIONS),
   encourageMore: z.enum(ENCOURAGE_MORE_OPTIONS),
   likedAndBetter: z.string().min(1, "Please share what you liked and what could be better"),
