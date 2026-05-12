@@ -1,7 +1,11 @@
 import { redirect, notFound } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { getFeedbackDetailForStudent } from "@/lib/actions/feedback";
+import {
+  getFeedbackDetailForStudent,
+  deleteFeedbackEntry,
+} from "@/lib/actions/feedback";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { DeleteRegistrationButton } from "@/components/admin/DeleteRegistrationButton";
 
 const VIEW_LABELS: Record<string, string> = {
   very_strongly: "Very Strongly",
@@ -67,7 +71,18 @@ export default async function FeedbackDetailPage({
         ) : (
           detail.perCompany.map((c) => (
             <div key={c.id} className="bg-white border rounded-lg p-5">
-              <h3 className="font-bold text-base mb-1">{c.companyName}</h3>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h3 className="font-bold text-base">{c.companyName}</h3>
+                <DeleteRegistrationButton
+                  studentName={`${detail.student.studentName}'s feedback for ${c.companyName}${
+                    c.internshipDate ? ` on ${c.internshipDate}` : ""
+                  }`}
+                  onDelete={async () => {
+                    "use server";
+                    await deleteFeedbackEntry(c.id, id);
+                  }}
+                />
+              </div>
               {c.internshipDate && (
                 <p className="text-xs text-gray-500 mb-3">
                   Attended on{" "}

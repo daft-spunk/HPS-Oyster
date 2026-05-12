@@ -1,9 +1,22 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { getFeedbackForSession } from "@/lib/actions/feedback";
+import {
+  getFeedbackForSession,
+  deleteAllFeedbackForStudent,
+} from "@/lib/actions/feedback";
 import { getInternshipSessionWithCompanies } from "@/lib/actions/internships";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { DeleteRegistrationButton } from "@/components/admin/DeleteRegistrationButton";
+
+function fmtDate(d: string | null): string {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "Asia/Kolkata",
+  });
+}
 
 export default async function FeedbackOverviewPage({
   params,
@@ -71,10 +84,11 @@ export default async function FeedbackOverviewPage({
                 <th className="px-4 py-3 font-medium text-gray-500">Roll #</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Phone</th>
+                <th className="px-4 py-3 font-medium text-gray-500">Internships reviewed</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Complete feedback</th>
                 <th className="px-4 py-3 font-medium text-gray-500">In progress</th>
                 <th className="px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Last update</th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-right">View</th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -86,6 +100,22 @@ export default async function FeedbackOverviewPage({
                   <td className="px-4 py-3">{r.rollNumber}</td>
                   <td className="px-4 py-3">{r.parentEmail}</td>
                   <td className="px-4 py-3">{r.parentPhone}</td>
+                  <td className="px-4 py-3">
+                    {r.internships.length === 0 ? (
+                      <span className="text-gray-400">—</span>
+                    ) : (
+                      <ul className="space-y-0.5 text-xs">
+                        {r.internships.map((it, idx) => (
+                          <li key={idx}>
+                            <span className="font-medium">{it.companyName}</span>
+                            {it.internshipDate && (
+                              <span className="text-gray-500"> · {fmtDate(it.internshipDate)}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {Number(r.completeCount) > 0 ? (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
@@ -115,16 +145,29 @@ export default async function FeedbackOverviewPage({
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {Number(r.section2Count) > 0 ? (
-                      <Link
-                        href={`/admin/internship-sessions/${id}/feedback/${encodeURIComponent(`${r.classSection}__${r.rollNumber}`)}`}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        View
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      {Number(r.section2Count) > 0 && (
+                        <Link
+                          href={`/admin/internship-sessions/${id}/feedback/${encodeURIComponent(`${r.classSection}__${r.rollNumber}`)}`}
+                          className="text-xs text-blue-600 hover:underline px-2"
+                        >
+                          View
+                        </Link>
+                      )}
+                      <DeleteRegistrationButton
+                        studentName={`${r.studentName}'s feedback (${r.internships.length} ${
+                          r.internships.length === 1 ? "entry" : "entries"
+                        })`}
+                        onDelete={async () => {
+                          "use server";
+                          await deleteAllFeedbackForStudent(
+                            id,
+                            r.classSection,
+                            r.rollNumber
+                          );
+                        }}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

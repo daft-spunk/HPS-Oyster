@@ -15,7 +15,7 @@ import {
 } from "@/lib/validators";
 import { isInternshipOver } from "@/lib/format";
 import { isAuthenticated } from "@/lib/auth";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -425,12 +425,15 @@ export async function getFeedbackForSession(sessionId: string) {
       parentEmail: internshipFeedbackCompany.parentEmail,
       parentPhone: internshipFeedbackCompany.parentPhone,
       sessionCompanyId: internshipFeedbackCompany.sessionCompanyId,
+      companyName: companies.name,
+      internshipDate: internshipFeedbackCompany.internshipDate,
       interactivityRating: internshipFeedbackCompany.interactivityRating,
       organizationSatisfaction: internshipFeedbackCompany.organizationSatisfaction,
       updatedAt: internshipFeedbackCompany.updatedAt,
     })
     .from(internshipFeedbackCompany)
     .innerJoin(sessionCompanies, eq(internshipFeedbackCompany.sessionCompanyId, sessionCompanies.id))
+    .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(sessionCompanies.sessionId, sessionId));
 
   // Roll up per student
@@ -445,12 +448,14 @@ export async function getFeedbackForSession(sessionId: string) {
     completeCount: number;
     lastUpdatedAt: Date;
     registrationId: string | null;
+    internships: { companyName: string; internshipDate: string | null }[];
   };
   const byKey = new Map<string, Agg>();
   for (const r of rows) {
     const existing = byKey.get(r.key);
     const hasSection2 = r.interactivityRating !== null;
     const hasSection3 = !!r.organizationSatisfaction;
+    const intern = { companyName: r.companyName, internshipDate: r.internshipDate };
     if (!existing) {
       byKey.set(r.key, {
         key: r.key,
@@ -463,11 +468,13 @@ export async function getFeedbackForSession(sessionId: string) {
         completeCount: hasSection3 ? 1 : 0,
         lastUpdatedAt: r.updatedAt,
         registrationId: null,
+        internships: [intern],
       });
     } else {
       if (hasSection2) existing.section2Count++;
       if (hasSection3) existing.completeCount++;
       if (r.updatedAt > existing.lastUpdatedAt) existing.lastUpdatedAt = r.updatedAt;
+      existing.internships.push(intern);
     }
   }
 
@@ -489,6 +496,39 @@ export async function getFeedbackForSession(sessionId: string) {
   return Array.from(byKey.values()).sort(
     (a, b) => b.lastUpdatedAt.getTime() - a.lastUpdatedAt.getTime()
   );
+}
+
+export async function deleteFeedbackEntry(id: string, sessionId: string) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  await db.delete(internshipFeedbackCompany).where(eq(internshipFeedbackCompany.id, id));
+  revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
+  revalidatePath(`/admin/internship-sessions/${sessionId}`);
+}
+
+export async function deleteAllFeedbackForStudent(
+  sessionId: string,
+  classSection: string,
+  rollNumber: string
+) {
+  if (!(await isAuthenticated())) throw new Error("Unauthorized");
+  // Scope to this session via subquery on session_company
+  const scIds = await db
+    .select({ id: sessionCompanies.id })
+    .from(sessionCompanies)
+    .where(eq(sessionCompanies.sessionId, sessionId));
+  if (scIds.length === 0) return;
+  await db.delete(internshipFeedbackCompany).where(
+    and(
+      inArray(
+        internshipFeedbackCompany.sessionCompanyId,
+        scIds.map((s) => s.id)
+      ),
+      sql`lower(${internshipFeedbackCompany.classSection}) = lower(${classSection})`,
+      sql`lower(${internshipFeedbackCompany.rollNumber}) = lower(${rollNumber})`
+    )
+  );
+  revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
+  revalidatePath(`/admin/internship-sessions/${sessionId}`);
 }
 
 export async function getFeedbackDetailForStudent(
