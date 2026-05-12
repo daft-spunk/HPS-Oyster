@@ -170,3 +170,37 @@ export const internshipRegistrationSchema = z
       (!data.pref3SessionCompanyId || !!data.pref3Reason),
     { message: "Please add a reason for each preference you pick" }
   );
+
+// ─── FEEDBACK ─────────────────────────────────────────────
+
+export const feedbackLookupSchema = z.object({
+  sessionId: z.string().uuid(),
+  classSection: z.string().min(1, "Class/Section is required"),
+  rollNumber: z.string().min(1, "Roll number is required"),
+});
+
+export const VIEW_CHANGE_OPTIONS = ["very_strongly", "strongly", "slightly", "not_at_all"] as const;
+export const LEARNING_VALUE_OPTIONS = ["not_valuable", "slightly", "somewhat", "very", "extremely"] as const;
+export const SUBJECT_CLARITY_OPTIONS = ["yes_definitely", "somewhat", "not_really", "did_not_help"] as const;
+export const ORG_SATISFACTION_OPTIONS = ["very_satisfied", "satisfied", "neutral", "dissatisfied", "very_dissatisfied"] as const;
+export const ENCOURAGE_MORE_OPTIONS = ["definitely_will", "probably_will", "maybe", "probably_not", "definitely_not"] as const;
+
+export const feedbackCompanyEntrySchema = z.object({
+  sessionCompanyId: z.string().uuid(),
+  internshipDate: z.string().optional(),
+  interactivityRating: z.coerce.number().int().min(1).max(5),
+  speakerRating: z.coerce.number().int().min(1).max(5),
+  keyTakeaway: z.string().min(1, "Please share a key takeaway"),
+  viewChangeLevel: z.enum(VIEW_CHANGE_OPTIONS),
+  learningValue: z.enum(LEARNING_VALUE_OPTIONS),
+  subjectClarity: z.enum(SUBJECT_CLARITY_OPTIONS),
+});
+
+export const feedbackSubmitSchema = z.object({
+  registrationId: z.string().uuid(),
+  perCompany: z.array(feedbackCompanyEntrySchema).min(1, "Tick at least one internship you attended"),
+  organizationSatisfaction: z.enum(ORG_SATISFACTION_OPTIONS),
+  encourageMore: z.enum(ENCOURAGE_MORE_OPTIONS),
+  likedAndBetter: z.string().min(1, "Please share what you liked and what could be better"),
+  suggestions: z.string().min(1, "Please share at least one suggestion"),
+});

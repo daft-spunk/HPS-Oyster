@@ -62,6 +62,7 @@ export default async function InternshipRegistrationsPage({
                 <th className="px-4 py-3 font-medium text-gray-500">Pref 3</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Phone</th>
+                <th className="px-4 py-3 font-medium text-gray-500">Feedback</th>
                 <th className="px-4 py-3 font-medium text-gray-500 text-right w-12">Action</th>
               </tr>
             </thead>
@@ -86,6 +87,19 @@ export default async function InternshipRegistrationsPage({
                   <td className="px-4 py-3">{r.pref3Company || "—"}</td>
                   <td className="px-4 py-3">{r.parentEmail}</td>
                   <td className="px-4 py-3">{r.parentPhone}</td>
+                  <td className="px-4 py-3">
+                    {Number(r.companyFeedbackCount) > 0 || r.sessionFeedbackSubmitted ? (
+                      <Link
+                        href={`/admin/internship-sessions/${id}/feedback/${r.id}`}
+                        className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200"
+                        title={`${Number(r.companyFeedbackCount)} company review(s)${r.sessionFeedbackSubmitted ? " + overall" : ""}`}
+                      >
+                        ✓ {Number(r.companyFeedbackCount)}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-2 items-center">
                       <Link

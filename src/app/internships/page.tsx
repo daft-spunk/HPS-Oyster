@@ -7,7 +7,7 @@ import {
 import { InternshipRegistrationForm } from "./InternshipRegistrationForm";
 import { InternshipDetails } from "./InternshipDetails";
 import { PublicNavbar } from "@/components/PublicNavbar";
-import { formatTargetClass, isDateOpen, anyDateOpen } from "@/lib/format";
+import { formatTargetClass, isDateOpen, anyDateOpen, isInternshipOver } from "@/lib/format";
 
 export default async function InternshipsPage({
   searchParams,
@@ -80,6 +80,21 @@ export default async function InternshipsPage({
           This is an expression of interest. After the registration window closes,
           the program team will announce the list of selected students.
         </div>
+
+        {session.companies.some((c) => isInternshipOver(c.internshipDates)) && (
+          <div className="mb-6 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 flex items-center justify-between gap-3 flex-wrap">
+            <span>
+              <strong>Attended an internship?</strong> Please share your feedback
+              — it&apos;s required for the participation certificate.
+            </span>
+            <Link
+              href={`/feedback?session=${session.id}`}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm whitespace-nowrap"
+            >
+              Give Feedback →
+            </Link>
+          </div>
+        )}
 
         {/* Company Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">

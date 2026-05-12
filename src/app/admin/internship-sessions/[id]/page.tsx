@@ -32,7 +32,7 @@ export default async function InternshipSessionDetail({
         backHref="/admin/internship-sessions"
         backLabel="Back to Internship Sessions"
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link
               href={`/admin/internship-sessions/${id}/edit`}
               className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
@@ -43,7 +43,13 @@ export default async function InternshipSessionDetail({
               href={`/admin/internship-sessions/${id}/registrations`}
               className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
             >
-              View Registrations
+              Registrations
+            </Link>
+            <Link
+              href={`/admin/internship-sessions/${id}/feedback`}
+              className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+            >
+              Feedback
             </Link>
           </div>
         }

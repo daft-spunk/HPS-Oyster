@@ -185,3 +185,44 @@ export const internshipRegistrations = pgTable(
   // server action so admin bulk-imports of legacy data can keep multiple
   // submissions from the same student.
 );
+
+// ─────────────────────────────────────────────────────────
+// INTERNSHIP FEEDBACK (post-internship survey)
+// ─────────────────────────────────────────────────────────
+
+export const internshipFeedbackCompany = pgTable(
+  "internship_feedback_company",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    registrationId: uuid("registration_id")
+      .notNull()
+      .references(() => internshipRegistrations.id, { onDelete: "cascade" }),
+    sessionCompanyId: uuid("session_company_id")
+      .notNull()
+      .references(() => sessionCompanies.id, { onDelete: "cascade" }),
+    internshipDate: date("internship_date"),
+    interactivityRating: integer("interactivity_rating").notNull(),
+    speakerRating: integer("speaker_rating").notNull(),
+    keyTakeaway: text("key_takeaway").notNull(),
+    viewChangeLevel: text("view_change_level").notNull(),
+    learningValue: text("learning_value").notNull(),
+    subjectClarity: text("subject_clarity").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("unique_feedback_company").on(t.registrationId, t.sessionCompanyId)]
+);
+
+export const internshipFeedbackSession = pgTable("internship_feedback_session", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  registrationId: uuid("registration_id")
+    .notNull()
+    .unique()
+    .references(() => internshipRegistrations.id, { onDelete: "cascade" }),
+  organizationSatisfaction: text("organization_satisfaction").notNull(),
+  encourageMore: text("encourage_more").notNull(),
+  likedAndBetter: text("liked_and_better").notNull(),
+  suggestions: text("suggestions").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

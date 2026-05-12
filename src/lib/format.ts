@@ -79,3 +79,16 @@ export function anyDateOpen(
   if (!dates || dates.length === 0) return true;
   return dates.some((d) => isDateOpen(d, cutoffDays));
 }
+
+/** Has every date for this internship already passed (used to decide if it's
+ * eligible for feedback)? Returns false if no dates set (we don't know yet). */
+export function isInternshipOver(
+  dates: (string | Date)[] | null | undefined
+): boolean {
+  if (!dates || dates.length === 0) return false;
+  const now = Date.now();
+  return dates.every((d) => {
+    const t = typeof d === "string" ? new Date(d).getTime() : d.getTime();
+    return !isNaN(t) && t < now;
+  });
+}
