@@ -49,24 +49,31 @@ export interface BoardCompany {
   } | null;
 }
 
-export type FeedbackPhase = {
-  phase: "board";
-  sessionId: string;
-  currentStudent: {
-    studentName: string;
-    classSection: string;
-    rollNumber: string;
-    parentName: string;
-    parentEmail: string;
-    parentPhone: string;
-  } | null;
-  eligibleCompanies: BoardCompany[];
-  error?: string;
-  flash?: string;
-  lastSubmittedScId?: string;
-  lastSubmittedDate?: string | null;
-  lastSubmittedStep?: "personal" | "section2" | "section3";
-};
+export type FeedbackPhase =
+  | {
+      phase: "board";
+      sessionId: string;
+      currentStudent: {
+        studentName: string;
+        classSection: string;
+        rollNumber: string;
+        parentName: string;
+        parentEmail: string;
+        parentPhone: string;
+      } | null;
+      eligibleCompanies: BoardCompany[];
+      error?: string;
+      flash?: string;
+      lastSubmittedScId?: string;
+      lastSubmittedDate?: string | null;
+      lastSubmittedStep?: "personal" | "section2" | "section3";
+    }
+  | {
+      phase: "thanks";
+      sessionId: string;
+      companyName: string;
+      internshipDate: string | null;
+    };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -382,12 +389,20 @@ export async function feedbackEntry(
       .where(eq(internshipFeedbackCompany.id, existingId));
     revalidatePath(`/admin/internship-sessions/${sessionId}/feedback`);
     revalidatePath(`/admin/internship-sessions/${sessionId}`);
-    return buildBoard(sessionId, studentForBoard, {
-      flash: "Program feedback saved. Thanks!",
-      lastSubmittedScId: sessionCompanyId,
-      lastSubmittedDate: internshipDate,
-      lastSubmittedStep: "section3",
-    });
+
+    // Look up the company name for the thank-you screen
+    const [sc] = await db
+      .select({ name: companies.name })
+      .from(sessionCompanies)
+      .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
+      .where(eq(sessionCompanies.id, sessionCompanyId));
+
+    return {
+      phase: "thanks",
+      sessionId,
+      companyName: sc?.name ?? "",
+      internshipDate,
+    };
   }
 
   return buildBoard(sessionId, studentForBoard, { error: "Unknown action" });

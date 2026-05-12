@@ -106,6 +106,7 @@ export function FeedbackForm({
     step?: string;
   } | null>(null);
   useEffect(() => {
+    if (state.phase !== "board") return;
     if (state.error || !state.lastSubmittedScId || !state.lastSubmittedStep) return;
     if (view.kind !== "wizard") return;
     if (state.lastSubmittedScId !== view.scId) return;
@@ -126,10 +127,28 @@ export function FeedbackForm({
       setView({ kind: "wizard", scId: view.scId, date: view.date, subStep: "section2" });
     } else if (state.lastSubmittedStep === "section2") {
       setView({ kind: "wizard", scId: view.scId, date: view.date, subStep: "section3" });
-    } else if (state.lastSubmittedStep === "section3") {
-      setView({ kind: "board" });
     }
+    // section3 is now handled by the "thanks" phase, no auto-board return
   }, [state, view]);
+
+  // ── Thank-you screen (after Section 3 submit) ─────────────────────
+  if (state.phase === "thanks") {
+    const dateLabel = formatDate(state.internshipDate);
+    return (
+      <div className="bg-white border rounded-lg p-10 text-center space-y-3">
+        <div className="text-5xl">🙏</div>
+        <h2 className="text-2xl font-bold text-emerald-700">Thank you!</h2>
+        <p className="text-gray-600">
+          Your feedback for <span className="font-semibold">{state.companyName}</span>
+          {dateLabel && <> · {dateLabel}</>} has been recorded.
+        </p>
+        <p className="text-sm text-gray-500">
+          Your input helps us shape the Oyster Internship Program. You can close
+          this window now.
+        </p>
+      </div>
+    );
+  }
 
   // ── Per-internship wizard ───────────────────────────────────────────
   if (view.kind === "wizard") {
@@ -377,7 +396,11 @@ function WizardHeader({
 
 // ─── Hidden student fields (carried in every step's submit) ──────────────
 
-function HiddenStudent({ state }: { state: FeedbackPhase }) {
+function HiddenStudent({
+  state,
+}: {
+  state: Extract<FeedbackPhase, { phase: "board" }>;
+}) {
   const s = state.currentStudent;
   if (!s) return null;
   return (
@@ -402,7 +425,7 @@ function PersonalForm({
   pending,
   error,
 }: {
-  state: FeedbackPhase;
+  state: Extract<FeedbackPhase, { phase: "board" }>;
   scId: string;
   date: string | null;
   formAction: (formData: FormData) => void;
@@ -522,7 +545,7 @@ function Section2Form({
   pending,
   error,
 }: {
-  state: FeedbackPhase;
+  state: Extract<FeedbackPhase, { phase: "board" }>;
   company: BoardCompany;
   formAction: (formData: FormData) => void;
   pending: boolean;
@@ -606,7 +629,7 @@ function Section3Form({
   pending,
   error,
 }: {
-  state: FeedbackPhase;
+  state: Extract<FeedbackPhase, { phase: "board" }>;
   company: BoardCompany;
   formAction: (formData: FormData) => void;
   pending: boolean;
