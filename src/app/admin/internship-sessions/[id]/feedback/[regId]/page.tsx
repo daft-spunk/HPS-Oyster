@@ -83,16 +83,6 @@ export default async function FeedbackDetailPage({
                 <Row label="View change">{VIEW_LABELS[c.viewChangeLevel] ?? c.viewChangeLevel}</Row>
                 <Row label="Learning value">{LEARNING_LABELS[c.learningValue] ?? c.learningValue}</Row>
                 <Row label="Subject clarity">{CLARITY_LABELS[c.subjectClarity] ?? c.subjectClarity}</Row>
-                {c.organizationSatisfaction && (
-                  <Row label="Organization">
-                    {ORG_LABELS[c.organizationSatisfaction] ?? c.organizationSatisfaction}
-                  </Row>
-                )}
-                {c.encourageMore && (
-                  <Row label="Encourage more">
-                    {ENCOURAGE_LABELS[c.encourageMore] ?? c.encourageMore}
-                  </Row>
-                )}
               </dl>
               <div className="mt-3">
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
@@ -100,22 +90,6 @@ export default async function FeedbackDetailPage({
                 </p>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.keyTakeaway}</p>
               </div>
-              {c.likedAndBetter && (
-                <div className="mt-3">
-                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                    Liked / could be better
-                  </p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.likedAndBetter}</p>
-                </div>
-              )}
-              {c.suggestions && (
-                <div className="mt-3">
-                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                    Suggestions for the program
-                  </p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.suggestions}</p>
-                </div>
-              )}
               <p className="text-xs text-gray-400 mt-3">
                 Submitted{" "}
                 {new Date(c.updatedAt).toLocaleString("en-IN", {
@@ -126,6 +100,46 @@ export default async function FeedbackDetailPage({
               </p>
             </div>
           ))
+        )}
+
+        {detail.ops ? (
+          <div className="bg-white border rounded-lg p-5">
+            <h3 className="font-bold text-base mb-3">Program / operations feedback</h3>
+            <dl className="grid sm:grid-cols-2 gap-3 text-sm">
+              <Row label="Organization">
+                {ORG_LABELS[detail.ops.organizationSatisfaction] ?? detail.ops.organizationSatisfaction}
+              </Row>
+              <Row label="Encourage more">
+                {ENCOURAGE_LABELS[detail.ops.encourageMore] ?? detail.ops.encourageMore}
+              </Row>
+            </dl>
+            <div className="mt-3">
+              <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                Liked / could be better
+              </p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{detail.ops.likedAndBetter}</p>
+            </div>
+            {detail.ops.suggestions && (
+              <div className="mt-3">
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                  Suggestions for the program
+                </p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{detail.ops.suggestions}</p>
+              </div>
+            )}
+            <p className="text-xs text-gray-400 mt-3">
+              Submitted{" "}
+              {new Date(detail.ops.updatedAt).toLocaleString("en-IN", {
+                dateStyle: "medium",
+                timeStyle: "short",
+                timeZone: "Asia/Kolkata",
+              })}
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 bg-white border rounded-lg p-6">
+            Program / operations feedback not submitted yet.
+          </p>
         )}
       </div>
     </div>

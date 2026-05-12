@@ -192,6 +192,13 @@ export const SUBJECT_CLARITY_OPTIONS = ["yes_definitely", "somewhat", "not_reall
 export const ORG_SATISFACTION_OPTIONS = ["very_satisfied", "satisfied", "neutral", "dissatisfied", "very_dissatisfied"] as const;
 export const ENCOURAGE_MORE_OPTIONS = ["definitely_will", "probably_will", "maybe", "probably_not", "definitely_not"] as const;
 
+export const feedbackPersonalSchema = z.object({
+  studentName: z.string().min(1, "Student name is required"),
+  parentName: z.string().min(1, "Parent name is required"),
+  parentEmail: z.string().email("Invalid email"),
+  parentPhone: z.string().min(10, "Invalid phone number"),
+});
+
 export const feedbackCompanyEntrySchema = z.object({
   sessionCompanyId: z.string().uuid(),
   internshipDate: z.string().optional(),
@@ -201,6 +208,9 @@ export const feedbackCompanyEntrySchema = z.object({
   viewChangeLevel: z.enum(VIEW_CHANGE_OPTIONS),
   learningValue: z.enum(LEARNING_VALUE_OPTIONS),
   subjectClarity: z.enum(SUBJECT_CLARITY_OPTIONS),
+});
+
+export const feedbackOpsSchema = z.object({
   organizationSatisfaction: z.enum(ORG_SATISFACTION_OPTIONS),
   encourageMore: z.enum(ENCOURAGE_MORE_OPTIONS),
   likedAndBetter: z.string().min(1, "Please share what you liked and what could be better"),

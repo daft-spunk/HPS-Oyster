@@ -70,7 +70,8 @@ export default async function FeedbackOverviewPage({
                 <th className="px-4 py-3 font-medium text-gray-500">Roll #</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Phone</th>
-                <th className="px-4 py-3 font-medium text-gray-500">Feedback submitted</th>
+                <th className="px-4 py-3 font-medium text-gray-500">Internship feedback</th>
+                <th className="px-4 py-3 font-medium text-gray-500">Program feedback</th>
                 <th className="px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Last update</th>
                 <th className="px-4 py-3 font-medium text-gray-500 text-right">View</th>
               </tr>
@@ -94,6 +95,15 @@ export default async function FeedbackOverviewPage({
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    {r.opsFeedbackSubmitted ? (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                        ✓ Done
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {r.lastFeedbackAt
                       ? new Date(r.lastFeedbackAt).toLocaleString("en-IN", {
@@ -104,7 +114,7 @@ export default async function FeedbackOverviewPage({
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {Number(r.companyFeedbackCount) > 0 ? (
+                    {Number(r.companyFeedbackCount) > 0 || r.opsFeedbackSubmitted ? (
                       <Link
                         href={`/admin/internship-sessions/${id}/feedback/${r.id}`}
                         className="text-xs text-blue-600 hover:underline"

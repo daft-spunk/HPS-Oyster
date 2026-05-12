@@ -41,20 +41,28 @@ const ENCOURAGE = [
   { value: "definitely_not", label: "Definitely will not" },
 ];
 
-type View = "board" | { kind: "company"; scId: string };
+type Step = "personal" | "internships" | "ops";
+type View = { step: Step } | { step: "internships"; focus: string };
 
 export function FeedbackForm({ sessionId }: { sessionId: string }) {
   const [state, formAction, pending] = useActionState<FeedbackPhase | null, FormData>(
     feedbackEntry,
     null
   );
-  const [view, setView] = useState<View>("board");
+  const [view, setView] = useState<View>({ step: "personal" });
 
-  // After any successful submit, server returns the board state again. Reset
-  // the focused view so we land back on the dashboard.
+  // After lookup succeeds, start the wizard at personal step
+  // After any successful submit, return to that step's home view (clear focus)
   useEffect(() => {
     if (state?.phase === "board" && !state.error) {
-      setView("board");
+      setView((v) => {
+        // If a flash exists, advance to the next step automatically
+        if (state.flash === "Personal details saved.") return { step: "internships" };
+        if (state.flash === "Program feedback saved.") return { step: "ops" };
+        // For internship submits, drop the focus so we return to the list
+        if (v.step === "internships" && "focus" in v) return { step: "internships" };
+        return v;
+      });
     }
   }, [state]);
 
@@ -106,40 +114,27 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
     );
   }
 
-  // ── Per-company form ─────────────────────────────────────────────────
-  if (typeof view === "object" && view.kind === "company") {
-    const company = state.eligibleCompanies.find((c) => c.sessionCompanyId === view.scId);
-    if (!company) {
-      setView("board");
-      return null;
-    }
-    return (
-      <CompanyForm
-        sessionId={state.sessionId}
-        registrationId={state.registration.id}
-        company={company}
-        formAction={formAction}
-        pending={pending}
-        onBack={() => setView("board")}
-        error={state.error}
-      />
-    );
-  }
-
-  // ── Board view (default) ─────────────────────────────────────────────
-  const reviewed = state.eligibleCompanies.filter((c) => c.feedback).length;
-  const allDone =
-    state.eligibleCompanies.length > 0 && reviewed === state.eligibleCompanies.length;
+  // ── Wizard ───────────────────────────────────────────────────────────
+  const personalDone = !!(
+    state.registration.studentName &&
+    state.registration.parentName &&
+    state.registration.parentEmail &&
+    state.registration.parentPhone
+  );
+  const internshipsDone =
+    state.eligibleCompanies.length > 0 &&
+    state.eligibleCompanies.every((c) => c.feedback);
+  const opsDone = !!state.ops.updatedAt;
 
   return (
     <div className="space-y-5">
-      <div className="bg-white border rounded-lg p-5">
-        <p className="text-sm text-gray-500">Welcome,</p>
-        <h2 className="text-xl font-bold">{state.registration.studentName}</h2>
-        <p className="text-xs text-gray-500 mt-1">
-          {state.registration.classSection} · Roll {state.registration.rollNumber}
-        </p>
-      </div>
+      <Stepper
+        currentStep={view.step}
+        onJump={(s) => setView({ step: s })}
+        personalDone={personalDone}
+        internshipsDone={internshipsDone}
+        opsDone={opsDone}
+      />
 
       {state.flash && (
         <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
@@ -147,24 +142,225 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
         </p>
       )}
 
-      {allDone && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 text-center">
-          <p className="text-emerald-800 font-bold text-lg mb-1">
-            🎉 All feedback complete
-          </p>
-          <p className="text-emerald-700 text-sm">
-            You&apos;re eligible for the participation certificate. Thanks for sharing your
-            experience — you can still update any answer if you want.
-          </p>
-        </div>
+      {view.step === "personal" && (
+        <PersonalForm
+          state={state}
+          formAction={formAction}
+          pending={pending}
+          error={state.error}
+        />
       )}
+      {view.step === "internships" && "focus" in view && (
+        <CompanyForm
+          sessionId={state.sessionId}
+          registrationId={state.registration.id}
+          company={state.eligibleCompanies.find((c) => c.sessionCompanyId === view.focus)!}
+          formAction={formAction}
+          pending={pending}
+          onBack={() => setView({ step: "internships" })}
+          error={state.error}
+        />
+      )}
+      {view.step === "internships" && !("focus" in view) && (
+        <InternshipBoard
+          state={state}
+          onPickCompany={(scId) => setView({ step: "internships", focus: scId })}
+          onContinue={() => setView({ step: "ops" })}
+        />
+      )}
+      {view.step === "ops" && (
+        <OpsForm
+          state={state}
+          formAction={formAction}
+          pending={pending}
+          error={state.error}
+          allDone={personalDone && internshipsDone && opsDone}
+        />
+      )}
+    </div>
+  );
+}
 
+// ─── Stepper ─────────────────────────────────────────────────────────────
+
+function Stepper({
+  currentStep,
+  onJump,
+  personalDone,
+  internshipsDone,
+  opsDone,
+}: {
+  currentStep: Step;
+  onJump: (s: Step) => void;
+  personalDone: boolean;
+  internshipsDone: boolean;
+  opsDone: boolean;
+}) {
+  const steps: { id: Step; label: string; done: boolean }[] = [
+    { id: "personal", label: "1. Personal details", done: personalDone },
+    { id: "internships", label: "2. Internship feedback", done: internshipsDone },
+    { id: "ops", label: "3. Program feedback", done: opsDone },
+  ];
+  return (
+    <div className="bg-white border rounded-lg p-2 flex gap-1 text-xs overflow-x-auto">
+      {steps.map((s) => {
+        const active = s.id === currentStep;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => onJump(s.id)}
+            className={`flex-1 min-w-fit px-3 py-2 rounded-md font-medium transition whitespace-nowrap ${
+              active
+                ? "bg-primary text-white"
+                : s.done
+                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            {s.done && !active && "✓ "}
+            {s.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Section 1: Personal details ────────────────────────────────────────
+
+function PersonalForm({
+  state,
+  formAction,
+  pending,
+  error,
+}: {
+  state: Extract<FeedbackPhase, { phase: "board" }>;
+  formAction: (formData: FormData) => void;
+  pending: boolean;
+  error?: string;
+}) {
+  return (
+    <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
+      <input type="hidden" name="intent" value="submit_personal" />
+      <input type="hidden" name="sessionId" value={state.sessionId} />
+      <input type="hidden" name="registrationId" value={state.registration.id} />
+
+      <div>
+        <h2 className="text-lg font-bold mb-1">Personal details</h2>
+        <p className="text-sm text-gray-600">
+          Confirm and edit these as needed. <strong>The student name below is what
+          will appear on the participation certificate</strong> — please make sure the
+          spelling is exactly how you want it printed.
+        </p>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Student Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="studentName"
+            required
+            defaultValue={state.registration.studentName}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+          <p className="text-xs text-gray-500 mt-1">As it will appear on the certificate.</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Class / Section
+          </label>
+          <input
+            value={state.registration.classSection}
+            disabled
+            className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
+          />
+          <p className="text-xs text-gray-400 mt-1">Locked — contact school if incorrect.</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Roll Number
+          </label>
+          <input
+            value={state.registration.rollNumber}
+            disabled
+            className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
+          />
+          <p className="text-xs text-gray-400 mt-1">Locked — contact school if incorrect.</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Parent / Guardian Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="parentName"
+            required
+            defaultValue={state.registration.parentName}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Parent Email <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="parentEmail"
+            type="email"
+            required
+            defaultValue={state.registration.parentEmail}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Parent Mobile <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="parentPhone"
+            type="tel"
+            required
+            defaultValue={state.registration.parentPhone}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
+      >
+        {pending ? "Saving..." : "Save and continue →"}
+      </button>
+    </form>
+  );
+}
+
+// ─── Section 2: Internship board ────────────────────────────────────────
+
+function InternshipBoard({
+  state,
+  onPickCompany,
+  onContinue,
+}: {
+  state: Extract<FeedbackPhase, { phase: "board" }>;
+  onPickCompany: (scId: string) => void;
+  onContinue: () => void;
+}) {
+  const reviewed = state.eligibleCompanies.filter((c) => c.feedback).length;
+  return (
+    <div className="space-y-4">
       <div className="bg-white border rounded-lg overflow-hidden">
         <div className="px-5 py-3 border-b bg-gray-50">
-          <h3 className="font-semibold text-sm text-gray-700">Internships</h3>
+          <h3 className="font-semibold text-base text-gray-900">Internship feedback</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             Click &quot;Give feedback&quot; only for the internships your child actually
-            attended. {state.eligibleCompanies.length === 0
+            attended.{" "}
+            {state.eligibleCompanies.length === 0
               ? "None of the internships in this session have happened yet."
               : `${reviewed} of ${state.eligibleCompanies.length} reviewed.`}
           </p>
@@ -195,7 +391,7 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setView({ kind: "company", scId: c.sessionCompanyId })}
+                  onClick={() => onPickCompany(c.sessionCompanyId)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                     c.feedback
                       ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -209,11 +405,17 @@ export function FeedbackForm({ sessionId }: { sessionId: string }) {
           </ul>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={onContinue}
+        className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition"
+      >
+        Continue to program feedback →
+      </button>
     </div>
   );
 }
-
-// ─── Single-internship form (includes section-3 questions per internship) ──
 
 function CompanyForm({
   sessionId,
@@ -330,47 +532,6 @@ function CompanyForm({
         defaultValue={pre?.subjectClarity}
       />
 
-      <hr />
-      <p className="text-sm font-medium text-gray-700">A bit about the program overall</p>
-
-      <RadioGroup
-        label="How satisfied are you with the overall organization (communication, logistics, guidance)?"
-        name="organizationSatisfaction"
-        options={ORG}
-        defaultValue={pre?.organizationSatisfaction ?? undefined}
-      />
-      <RadioGroup
-        label="How likely are you to encourage your child to apply for more Oyster internships in the future?"
-        name="encourageMore"
-        options={ENCOURAGE}
-        defaultValue={pre?.encourageMore ?? undefined}
-      />
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          One thing the student liked, and one thing that can be done better.{" "}
-          <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          name="likedAndBetter"
-          required
-          rows={3}
-          defaultValue={pre?.likedAndBetter ?? ""}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Any suggestions to make the Oyster program more impactful?{" "}
-          <span className="text-gray-400 font-normal">(optional)</span>
-        </label>
-        <textarea
-          name="suggestions"
-          rows={3}
-          defaultValue={pre?.suggestions ?? ""}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-        />
-      </div>
-
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
 
       <div className="flex gap-2">
@@ -390,6 +551,100 @@ function CompanyForm({
         </button>
       </div>
     </form>
+  );
+}
+
+// ─── Section 3: Ops feedback ────────────────────────────────────────────
+
+function OpsForm({
+  state,
+  formAction,
+  pending,
+  error,
+  allDone,
+}: {
+  state: Extract<FeedbackPhase, { phase: "board" }>;
+  formAction: (formData: FormData) => void;
+  pending: boolean;
+  error?: string;
+  allDone: boolean;
+}) {
+  return (
+    <>
+      {allDone && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 text-center">
+          <p className="text-emerald-800 font-bold text-lg mb-1">
+            🎉 All feedback complete
+          </p>
+          <p className="text-emerald-700 text-sm">
+            You&apos;re eligible for the participation certificate. You can still
+            update any section if you&apos;d like.
+          </p>
+        </div>
+      )}
+
+      <form action={formAction} className="bg-white border rounded-lg p-6 space-y-5">
+        <input type="hidden" name="intent" value="submit_ops" />
+        <input type="hidden" name="sessionId" value={state.sessionId} />
+        <input type="hidden" name="registrationId" value={state.registration.id} />
+
+        <div>
+          <h2 className="text-lg font-bold">Program / operations feedback</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            How the Oyster program ran overall — communication, logistics, and your
+            ideas for next time.
+          </p>
+        </div>
+
+        <RadioGroup
+          label="How satisfied are you with the overall organization (communication, logistics, guidance)?"
+          name="organizationSatisfaction"
+          options={ORG}
+          defaultValue={state.ops.organizationSatisfaction ?? undefined}
+        />
+        <RadioGroup
+          label="How likely are you to encourage your child to apply for more Oyster internships in the future?"
+          name="encourageMore"
+          options={ENCOURAGE}
+          defaultValue={state.ops.encourageMore ?? undefined}
+        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            One thing the student liked, and one thing that can be done better.{" "}
+            <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            name="likedAndBetter"
+            required
+            rows={3}
+            defaultValue={state.ops.likedAndBetter ?? ""}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Any suggestions to make the Oyster program more impactful?{" "}
+            <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea
+            name="suggestions"
+            rows={3}
+            defaultValue={state.ops.suggestions ?? ""}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+
+        {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-light transition disabled:opacity-50"
+        >
+          {pending ? "Saving..." : "Save program feedback"}
+        </button>
+      </form>
+    </>
   );
 }
 

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import {
   internshipRegistrations,
   internshipFeedbackCompany,
+  internshipFeedbackOps,
   sessionCompanies,
   companies,
   internshipSessions,
@@ -26,6 +27,7 @@ export async function GET(
     .where(eq(internshipSessions.id, id));
   if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Per-company rows joined with the optional ops feedback for the same registration.
   const rowsData = await db
     .select({
       registeredAt: internshipRegistrations.createdAt,
@@ -33,6 +35,7 @@ export async function GET(
       studentName: internshipRegistrations.studentName,
       classSection: internshipRegistrations.classSection,
       rollNumber: internshipRegistrations.rollNumber,
+      parentName: internshipRegistrations.parentName,
       parentEmail: internshipRegistrations.parentEmail,
       parentPhone: internshipRegistrations.parentPhone,
       companyName: companies.name,
@@ -43,10 +46,10 @@ export async function GET(
       viewChangeLevel: internshipFeedbackCompany.viewChangeLevel,
       learningValue: internshipFeedbackCompany.learningValue,
       subjectClarity: internshipFeedbackCompany.subjectClarity,
-      organizationSatisfaction: internshipFeedbackCompany.organizationSatisfaction,
-      encourageMore: internshipFeedbackCompany.encourageMore,
-      likedAndBetter: internshipFeedbackCompany.likedAndBetter,
-      suggestions: internshipFeedbackCompany.suggestions,
+      opsOrgSatisfaction: internshipFeedbackOps.organizationSatisfaction,
+      opsEncourageMore: internshipFeedbackOps.encourageMore,
+      opsLikedAndBetter: internshipFeedbackOps.likedAndBetter,
+      opsSuggestions: internshipFeedbackOps.suggestions,
     })
     .from(internshipFeedbackCompany)
     .innerJoin(
@@ -58,6 +61,10 @@ export async function GET(
       eq(internshipFeedbackCompany.sessionCompanyId, sessionCompanies.id)
     )
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
+    .leftJoin(
+      internshipFeedbackOps,
+      eq(internshipFeedbackOps.registrationId, internshipRegistrations.id)
+    )
     .where(eq(internshipRegistrations.sessionId, id));
 
   const headers = [
@@ -66,6 +73,7 @@ export async function GET(
     "Student Name",
     "Class/Section",
     "Roll Number",
+    "Parent Name",
     "Parent Email",
     "Parent Phone",
     "Company",
@@ -76,10 +84,10 @@ export async function GET(
     "View Change",
     "Learning Value",
     "Subject Clarity",
-    "Org Satisfaction",
-    "Encourage More",
-    "Liked / Better",
-    "Suggestions",
+    "Ops: Org Satisfaction",
+    "Ops: Encourage More",
+    "Ops: Liked / Better",
+    "Ops: Suggestions",
   ];
 
   const rows = rowsData.map((c) =>
@@ -89,6 +97,7 @@ export async function GET(
       c.studentName,
       c.classSection,
       c.rollNumber,
+      c.parentName,
       c.parentEmail,
       c.parentPhone,
       c.companyName,
@@ -99,10 +108,10 @@ export async function GET(
       c.viewChangeLevel,
       c.learningValue,
       c.subjectClarity,
-      c.organizationSatisfaction ?? "",
-      c.encourageMore ?? "",
-      c.likedAndBetter ?? "",
-      c.suggestions ?? "",
+      c.opsOrgSatisfaction ?? "",
+      c.opsEncourageMore ?? "",
+      c.opsLikedAndBetter ?? "",
+      c.opsSuggestions ?? "",
     ]
       .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
       .join(",")

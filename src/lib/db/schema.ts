@@ -208,14 +208,22 @@ export const internshipFeedbackCompany = pgTable(
     viewChangeLevel: text("view_change_level").notNull(),
     learningValue: text("learning_value").notNull(),
     subjectClarity: text("subject_clarity").notNull(),
-    // Overall (per-internship-flavoured) responses from the Google form's
-    // section 3. Asked alongside each internship's section-2 questions.
-    organizationSatisfaction: text("organization_satisfaction"),
-    encourageMore: text("encourage_more"),
-    likedAndBetter: text("liked_and_better"),
-    suggestions: text("suggestions"), // optional
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("unique_feedback_company").on(t.registrationId, t.sessionCompanyId)]
 );
+
+export const internshipFeedbackOps = pgTable("internship_feedback_ops", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  registrationId: uuid("registration_id")
+    .notNull()
+    .unique()
+    .references(() => internshipRegistrations.id, { onDelete: "cascade" }),
+  organizationSatisfaction: text("organization_satisfaction").notNull(),
+  encourageMore: text("encourage_more").notNull(),
+  likedAndBetter: text("liked_and_better").notNull(),
+  suggestions: text("suggestions"), // optional
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
