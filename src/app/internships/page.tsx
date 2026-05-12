@@ -7,7 +7,7 @@ import {
 import { InternshipRegistrationForm } from "./InternshipRegistrationForm";
 import { InternshipDetails } from "./InternshipDetails";
 import { PublicNavbar } from "@/components/PublicNavbar";
-import { formatTargetClass, isDateOpen, anyDateOpen, isInternshipOver } from "@/lib/format";
+import { formatTargetClass, isDateOpen, anyDateOpen } from "@/lib/format";
 
 export default async function InternshipsPage({
   searchParams,
@@ -81,33 +81,18 @@ export default async function InternshipsPage({
           the program team will announce the list of selected students.
         </div>
 
-        {(() => {
-          const anyOver = session.companies.some((c) => isInternshipOver(c.internshipDates));
-          return (
-            <div className="mb-6 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 flex items-center justify-between gap-3 flex-wrap">
-              <span>
-                {anyOver ? (
-                  <>
-                    <strong>Attended an internship?</strong> Please share your feedback
-                    — it&apos;s required for the participation certificate.
-                  </>
-                ) : (
-                  <>
-                    <strong>Feedback for this round:</strong> the link below opens
-                    automatically as each internship date passes. Save it for after
-                    your child attends.
-                  </>
-                )}
-              </span>
-              <Link
-                href={`/feedback/${session.slug}`}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm whitespace-nowrap"
-              >
-                {anyOver ? "Give Feedback →" : "Feedback link"}
-              </Link>
-            </div>
-          );
-        })()}
+        <div className="mb-6 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 flex items-center justify-between gap-3 flex-wrap">
+          <span>
+            <strong>Submit feedback after each internship.</strong> It&apos;s
+            mandatory to get the participation certificate.
+          </span>
+          <Link
+            href={`/feedback/${session.slug}`}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm whitespace-nowrap"
+          >
+            Give Feedback →
+          </Link>
+        </div>
 
         {/* Company Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
