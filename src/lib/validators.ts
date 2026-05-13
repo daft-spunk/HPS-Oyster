@@ -206,6 +206,7 @@ export const feedbackCompanyEntrySchema = z.object({
   internshipDate: z.string().optional(),
   interactivityRating: z.coerce.number().int().min(1).max(5),
   speakerRating: z.coerce.number().int().min(1).max(5),
+  learnings: z.string().min(1, "Please share what your child learnt"),
   keyTakeaway: z.string().min(1, "Please share a key takeaway"),
   viewChangeLevel: z.enum(VIEW_CHANGE_OPTIONS),
   learningValue: z.enum(LEARNING_VALUE_OPTIONS),

@@ -578,6 +578,23 @@ function Section2Form({
       />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
+          What did your child learn during this internship?{" "}
+          <span className="text-red-500">*</span>
+        </label>
+        <p className="text-xs text-gray-500 mb-1">
+          Be as specific as you can — skills, concepts, tools, behaviours,
+          industry insights.
+        </p>
+        <textarea
+          name="learnings"
+          required
+          rows={4}
+          defaultValue={pre?.learnings ?? ""}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           What was your child&apos;s key takeaway? <span className="text-red-500">*</span>
         </label>
         <textarea

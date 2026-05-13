@@ -37,6 +37,7 @@ export interface BoardCompany {
     internshipDate: string | null;
     interactivityRating: number | null;
     speakerRating: number | null;
+    learnings: string | null;
     keyTakeaway: string | null;
     viewChangeLevel: string | null;
     learningValue: string | null;
@@ -150,6 +151,7 @@ async function buildBoard(
               internshipDate: f.internshipDate ?? null,
               interactivityRating: f.interactivityRating ?? null,
               speakerRating: f.speakerRating ?? null,
+              learnings: f.learnings ?? null,
               keyTakeaway: f.keyTakeaway ?? null,
               viewChangeLevel: f.viewChangeLevel ?? null,
               learningValue: f.learningValue ?? null,
@@ -297,6 +299,7 @@ export async function feedbackEntry(
       internshipDate: internshipDate ?? undefined,
       interactivityRating: Number(formData.get("interactivityRating") || 0),
       speakerRating: Number(formData.get("speakerRating") || 0),
+      learnings: ((formData.get("learnings") as string) || "").trim(),
       keyTakeaway: ((formData.get("keyTakeaway") as string) || "").trim(),
       viewChangeLevel: formData.get("viewChangeLevel"),
       learningValue: formData.get("learningValue"),
@@ -327,6 +330,7 @@ export async function feedbackEntry(
       .set({
         interactivityRating: parsed.data.interactivityRating,
         speakerRating: parsed.data.speakerRating,
+        learnings: parsed.data.learnings,
         keyTakeaway: parsed.data.keyTakeaway,
         viewChangeLevel: parsed.data.viewChangeLevel,
         learningValue: parsed.data.learningValue,
@@ -567,6 +571,7 @@ export async function getFeedbackDetailForStudent(
       internshipDate: internshipFeedbackCompany.internshipDate,
       interactivityRating: internshipFeedbackCompany.interactivityRating,
       speakerRating: internshipFeedbackCompany.speakerRating,
+      learnings: internshipFeedbackCompany.learnings,
       keyTakeaway: internshipFeedbackCompany.keyTakeaway,
       viewChangeLevel: internshipFeedbackCompany.viewChangeLevel,
       learningValue: internshipFeedbackCompany.learningValue,

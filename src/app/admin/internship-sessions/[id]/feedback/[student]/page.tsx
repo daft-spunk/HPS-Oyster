@@ -128,6 +128,14 @@ export default async function FeedbackDetailPage({
                   </Row>
                 )}
               </dl>
+              {c.learnings && (
+                <div className="mt-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                    What they learnt
+                  </p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.learnings}</p>
+                </div>
+              )}
               {c.keyTakeaway && (
                 <div className="mt-3">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
