@@ -13,7 +13,7 @@ import {
   feedbackCompanyEntrySchema,
   feedbackOpsForCompanySchema,
 } from "@/lib/validators";
-import { isInternshipOver } from "@/lib/format";
+import { isInternshipOver, isDatePastIst } from "@/lib/format";
 import { isAuthenticated } from "@/lib/auth";
 import { eq, sql, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -107,8 +107,10 @@ async function buildBoard(
     .innerJoin(companies, eq(sessionCompanies.companyId, companies.id))
     .where(eq(sessionCompanies.sessionId, sessionId));
 
+  // A company is on the board if ANY of its dates has already passed (the day
+  // after the date, IST). Per-date entries below filter the actual rows.
   const eligibleCompanyRows = sessionCompaniesAll.filter((c) =>
-    isInternshipOver(c.internshipDates ?? null)
+    (c.internshipDates ?? []).some((d) => isDatePastIst(d))
   );
 
   // Pull existing feedback rows for THIS student (if we know who they are)
@@ -129,10 +131,8 @@ async function buildBoard(
   // Expand each company into one board entry per internship date (or a single
   // entry with null date when no dates are recorded).
   const eligibleCompanies: BoardCompany[] = eligibleCompanyRows.flatMap((c) => {
-    const dates =
-      c.internshipDates && c.internshipDates.length > 0
-        ? c.internshipDates
-        : [null];
+    // Only include dates that have already passed (IST next-day rule).
+    const dates = (c.internshipDates ?? []).filter((d) => isDatePastIst(d));
     return dates.map((d) => {
       const f = byKey.get(`${c.sessionCompanyId}|${d ?? ""}`);
       return {
@@ -252,7 +252,12 @@ export async function feedbackEntry(
     if (!sc || sc.sessionId !== sessionId) {
       return buildBoard(sessionId, parsed.data, { error: "Invalid internship" });
     }
-    if (!isInternshipOver(sc.internshipDates)) {
+    // The specific date the student picked must have already passed (or, for
+    // legacy companies with no dates recorded, fall back to the all-dates check)
+    const dateOk = internshipDate
+      ? isDatePastIst(internshipDate)
+      : isInternshipOver(sc.internshipDates);
+    if (!dateOk) {
       return buildBoard(sessionId, parsed.data, {
         error: "Feedback can only be given for internships that have already happened",
       });
@@ -424,7 +429,9 @@ export async function getFeedbackEligibleSession() {
     .select({ internshipDates: sessionCompanies.internshipDates })
     .from(sessionCompanies)
     .where(eq(sessionCompanies.sessionId, s.id));
-  return cs.some((c) => isInternshipOver(c.internshipDates)) ? s : null;
+  return cs.some((c) => (c.internshipDates ?? []).some((d) => isDatePastIst(d)))
+    ? s
+    : null;
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────

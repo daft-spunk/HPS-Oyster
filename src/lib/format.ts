@@ -92,15 +92,28 @@ export function slugify(input: string, max = 40): string {
   return s || "session";
 }
 
+/** Today's date in IST in YYYY-MM-DD form. */
+function todayIstYmd(): string {
+  // en-CA gives YYYY-MM-DD
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+/** Has this specific internship date already passed (i.e. it's the next day or
+ * later in IST)? Used to decide if a (company, date) slot is open for feedback. */
+export function isDatePastIst(d: string | Date | null | undefined): boolean {
+  if (!d) return false;
+  const ymd =
+    typeof d === "string"
+      ? d.slice(0, 10)
+      : d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  return ymd < todayIstYmd();
+}
+
 /** Has every date for this internship already passed (used to decide if it's
  * eligible for feedback)? Returns false if no dates set (we don't know yet). */
 export function isInternshipOver(
   dates: (string | Date)[] | null | undefined
 ): boolean {
   if (!dates || dates.length === 0) return false;
-  const now = Date.now();
-  return dates.every((d) => {
-    const t = typeof d === "string" ? new Date(d).getTime() : d.getTime();
-    return !isNaN(t) && t < now;
-  });
+  return dates.every((d) => isDatePastIst(d));
 }
