@@ -185,21 +185,9 @@ export async function registerForInternship(
   const pref3Id = max >= 3 ? data.pref3SessionCompanyId ?? null : null;
   const pref3Reason = max >= 3 ? data.pref3Reason ?? null : null;
 
-  // App-level uniqueness check: same (session, class, roll) cannot register twice
-  // through the public form. Admin imports/manual entries are allowed to
-  // create multiple rows for the same student (different submissions over time).
-  const [existing] = await db
-    .select({ id: internshipRegistrations.id })
-    .from(internshipRegistrations)
-    .where(
-      sql`${internshipRegistrations.sessionId} = ${data.sessionId}
-        AND ${internshipRegistrations.classSection} = ${data.classSection}
-        AND ${internshipRegistrations.rollNumber} = ${data.rollNumber}`
-    )
-    .limit(1);
-  if (existing) {
-    return { error: "You have already registered for this session" };
-  }
+  // No uniqueness check — a student is allowed to register multiple times
+  // (e.g. to update preferences). Each submission is its own row; admin can
+  // see the full history and reconcile if needed.
 
   try {
     await db.insert(internshipRegistrations).values({
