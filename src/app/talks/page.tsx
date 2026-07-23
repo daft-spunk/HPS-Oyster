@@ -6,7 +6,12 @@ import { SpeakerBio } from "./SpeakerBio";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { formatTargetClass } from "@/lib/format";
 
-export default async function TalksPage() {
+export default async function TalksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session?: string }>;
+}) {
+  const { session: selectedId } = await searchParams;
   const activeSessions = await getActiveTalkSessions();
 
   if (activeSessions.length === 0) {
@@ -26,8 +31,55 @@ export default async function TalksPage() {
     );
   }
 
+  // If multiple sessions are active and no session picked, show a chooser
+  // so students only land on the one for their class.
+  if (activeSessions.length > 1 && !selectedId) {
+    return (
+      <div className="min-h-screen">
+        <PublicNavbar />
+        <div className="max-w-3xl mx-auto px-4 py-16">
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-bold mb-2">Role Model Talks</h1>
+            <p className="text-gray-600">Pick your grade to see the speakers.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {activeSessions.map((s) => (
+              <Link
+                key={s.id}
+                href={`/talks?session=${s.id}`}
+                className="group block bg-white border rounded-xl p-6 hover:border-primary hover:shadow-md transition"
+              >
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                  {s.editionLabel}
+                </p>
+                <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary">
+                  {formatTargetClass(s.targetClass)}
+                </h2>
+                <p className="text-sm text-gray-600 mt-2">
+                  {[s.sessionDate, s.timeSlot].filter(Boolean).join(" · ")}
+                </p>
+                <p className="text-sm text-primary font-medium mt-4 group-hover:underline">
+                  See speakers →
+                </p>
+              </Link>
+            ))}
+          </div>
+          <p className="text-center mt-10">
+            <Link href="/" className="text-primary hover:underline text-sm">
+              &larr; Back to Home
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const visibleSessions = selectedId
+    ? activeSessions.filter((s) => s.id === selectedId)
+    : activeSessions;
+
   const sessionsWithSpeakersRaw = await Promise.all(
-    activeSessions.map((s) => getSessionWithSpeakers(s.id))
+    visibleSessions.map((s) => getSessionWithSpeakers(s.id))
   );
   // Hide inactive speakers from public registration
   const sessionsWithSpeakers = sessionsWithSpeakersRaw.map((s) =>
@@ -45,6 +97,14 @@ export default async function TalksPage() {
             have been there. Choose a speaker whose topic interests you and register below.
           </p>
         </div>
+
+        {selectedId && activeSessions.length > 1 && (
+          <p className="mb-6">
+            <Link href="/talks" className="text-sm text-gray-500 hover:text-primary">
+              &larr; Back to all grades
+            </Link>
+          </p>
+        )}
 
         {sessionsWithSpeakers.map((session) => {
           if (!session) return null;

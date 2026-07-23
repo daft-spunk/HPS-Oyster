@@ -1,8 +1,8 @@
 export type TargetClass = "9" | "10" | "9_10" | "11_12";
 
 export function formatTargetClass(c: TargetClass): string {
-  if (c === "9_10") return "Class 9 & 10";
-  if (c === "11_12") return "Class 11 & 12";
+  if (c === "9_10") return "Classes 9 & 10";
+  if (c === "11_12") return "Classes 11 & 12";
   return `Class ${c}`;
 }
 

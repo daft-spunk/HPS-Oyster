@@ -13,30 +13,71 @@ const BIO_HARSHA = `Harsha T is an entrepreneur with a focus on real estate. Adv
 const BIO_MMP_RAJU = `M. M. Pallam Raju — Former Union Cabinet Minister, Government of India. Founder & Director of Advanced System in Package Technologies (ASIP Technologies), setting up a global-standard Semiconductor OSAT facility in Andhra Pradesh; founder of two prior companies in Semiconductor Design Services and IP Development with successful exits. Served as Union Cabinet Minister for Human Resources Development (2012–2014) and Minister of State for Defence (2006–2012). Chairman of the Parliamentary Standing Committee on Information Technology (2004–2006). Elected to the Lok Sabha thrice from Kakinada. BE (Andhra University) and MBA (Temple University, Philadelphia). Honorary Fellow, IETE; Honorary Doctor of Humane Letters, Temple University; Honorary Doctorate, JNTU Hyderabad. Author of "A Contribution in Time — India's Electronics Revolution".`;
 const BIO_NAVJITH = `Navjit is CEO of AM Green, leading the development of a low-carbon, 0.6 million tonne primary aluminium smelter and ~2GW of compute capacity for Artificial Intelligence and Green Data Centres. 37 years of experience in Power, Infrastructure and Marine sectors. Previously Country Head at Gentari (Petronas), CCO at SB Energy (2017–2021), Regional GM–Sales at GE Renewables India, MD–India & Regional Director MESA at Rolls-Royce Marine (6 years to 2014), Executive Director–Business Development at KSK Energy Ventures (2006–2009), and 17 years at Wartsila. Bachelor of Engineering (Mechanical) and MBA (Finance) from Osmania University; IDL Chemicals Gold Medal; Executive MBA from S.P. Jain; Alumnus of Harvard Business School (SELP-2025); BEE certified Energy Manager & Auditor.`;
 
+// Shared topic descriptions (used when a speaker appears in both grades)
+const TD_MEHERNOSH = "Building people, building careers — lessons from Max Healthcare, Airtel, Aditya Birla, Godrej and more.";
+const TD_YUDISH = "Practical stories from building and running business development at Amazon and beyond.";
+const TD_HARSHA = "Real-estate entrepreneurship, UW–Madison Hall of Fame, and giving back — the real work behind the label 'entrepreneur'.";
+const TD_MMP_RAJU = "From engineering and business school to Cabinet Minister — and the story behind my book 'A Contribution in Time — India's Electronics Revolution'.";
+const TD_SISTLA = "Introducing students to media — the business, finance and legal aspects — and using media to grow ventures in a future enabled by AI.";
+
 // ─── Grade 10 — 27 July 2026, 2:45 PM – 3:45 PM, Shaheen Lounge/Hall (~50 seats) ──
 const GRADE_10 = [
   { name: "Mohan Narayana Swamy", bio: "Role model speaker (bio to follow).", topic: "Role Model Talk" },
-  { name: "Akshay Kumar Ahuja", bio: "Biotechnology.", topic: "Biotechnology", topicDescription: "What challenges led me to biotechnology." },
-  { name: "Sardar Sukhvinder Singh", bio: "Journey from Process Excellence to Entrepreneurship to Wells Fargo.", topic: "Building a Career You Didn't Plan For", topicDescription: "Journey from Process Excellence to Entrepreneurship to Wells Fargo." },
-  { name: "Dr. Sashidhar", bio: "Nephrologist.", topic: "Healthcare — Nephrology", topicDescription: "Careers in the field of science, and why I chose to be a nephrologist." },
-  { name: "Mehernosh Bazun Dittia", bio: BIO_MEHERNOSH, topic: "Entrepreneurship" },
-  { name: "M. M. Pallam Raju", bio: BIO_MMP_RAJU, topic: "Public Services", topicDescription: "A career in public service, and my contribution as the author of 'A Contribution in Time – India's Electronics Revolution'." },
-  { name: "Sistla Venkata Abhishek", bio: BIO_SISTLA, topic: "Mediapreneurship post AGI", topicDescription: "Introducing students to media — the business, finance and legal aspects — in a future enabled by AI." },
-  { name: "Yudish Kalluri", bio: "Senior Manager at Amazon.", topic: "Entrepreneurship", topicDescription: "How I built my business development system." },
-  { name: "Bhavishya Gupta", bio: "Hospitality; wealth creation.", topic: "How to Create Everlasting Wealth" },
-  { name: "Harsha Tipireneni", bio: BIO_HARSHA, topic: "Entrepreneurship", topicDescription: "What is entrepreneurship." },
+  { name: "Akshay Kumar Ahuja", bio: "Biotechnology.",
+    topic: "Biotechnology — the road less travelled",
+    topicDescription: "What challenges led me to biotechnology, and what the field looks like from the inside." },
+  { name: "Sardar Sukhvinder Singh", bio: "Journey from Process Excellence to Entrepreneurship to Wells Fargo.",
+    topic: "Building a Career You Didn't Plan For",
+    topicDescription: "My journey from Process Excellence to Entrepreneurship to Wells Fargo — and why the best careers are almost never linear." },
+  { name: "Dr. Sashidhar", bio: "Nephrologist.",
+    topic: "Careers in Science — and Why I Became a Nephrologist",
+    topicDescription: "What the many careers in the field of science look like, and the story of why I chose nephrology." },
+  { name: "Mehernosh Bazun Dittia", bio: BIO_MEHERNOSH,
+    topic: "Entrepreneurship & Talent Development",
+    topicDescription: TD_MEHERNOSH },
+  { name: "M. M. Pallam Raju", bio: BIO_MMP_RAJU,
+    topic: "A Career in Public Service",
+    topicDescription: TD_MMP_RAJU },
+  { name: "Sistla Venkata Abhishek", bio: BIO_SISTLA,
+    topic: "Mediapreneurship post AGI",
+    topicDescription: TD_SISTLA },
+  { name: "Yudish Kalluri", bio: "Senior Manager at Amazon.",
+    topic: "How I Built My Business Development System",
+    topicDescription: TD_YUDISH },
+  { name: "Bhavishya Gupta", bio: "Hospitality; wealth creation.",
+    topic: "How to Create Everlasting Wealth",
+    topicDescription: "Building wealth that lasts — a view from the hospitality industry." },
+  { name: "Harsha Tipireneni", bio: BIO_HARSHA,
+    topic: "What is Entrepreneurship — Really?",
+    topicDescription: TD_HARSHA },
 ];
 
 // ─── Grade 11 & 12 — 28 July 2026, 8:15 AM – 9:15 AM, Shaheen Lounge/Hall (~60 seats) ──
 const GRADE_11_12 = [
-  { name: "Mehernosh Bazun Dittia", topic: "Entrepreneurship" },
-  { name: "Raghuveer Kovuru", bio: BIO_RAGHUVEER, topic: "Building Tomorrow: How Ideas Become Products, Companies and Careers" },
-  { name: "Yudish Kalluri", topic: "Entrepreneurship" },
-  { name: "Rajiv Gupta", bio: BIO_RAJIV, topic: "Healthcare", topicDescription: "Experience in IT systems integration through Sara Infoway; building lean, scaling smart, and turning technical capability into real business value." },
-  { name: "Sistla Venkata Abhishek", topic: "Mediapreneurship post AGI" },
-  { name: "Harsha Tipireneni", topic: "Entrepreneurship" },
-  { name: "M. M. Pallam Raju", topic: "Public Services" },
-  { name: "Navjith Gill", bio: BIO_NAVJITH, topic: "AI & Robotics" },
+  { name: "Mehernosh Bazun Dittia",
+    topic: "Entrepreneurship & Talent Development",
+    topicDescription: TD_MEHERNOSH },
+  { name: "Raghuveer Kovuru", bio: BIO_RAGHUVEER,
+    topic: "Building Tomorrow: How Ideas Become Products, Companies and Careers",
+    topicDescription: "16 years turning ideas into ventures with startups, universities, governments and India's leading companies — ex-T-Hub, now Innokraft Consulting." },
+  { name: "Yudish Kalluri",
+    topic: "How I Built My Business Development System",
+    topicDescription: TD_YUDISH },
+  { name: "Rajiv Gupta", bio: BIO_RAJIV,
+    topic: "Healthcare + Tech — IT Systems Integration at Sara Infoway",
+    topicDescription: "Two decades of systems integration — first Railway Automation Project (2004), first Defence AI Lab (2025); co-founder of Addiwise / Addiwalk. Building lean, scaling smart, turning tech into real business value." },
+  { name: "Sistla Venkata Abhishek",
+    topic: "Mediapreneurship post AGI",
+    topicDescription: TD_SISTLA },
+  { name: "Harsha Tipireneni",
+    topic: "What is Entrepreneurship — Really?",
+    topicDescription: TD_HARSHA },
+  { name: "M. M. Pallam Raju",
+    topic: "A Career in Public Service",
+    topicDescription: TD_MMP_RAJU },
+  { name: "Navjith Gill", bio: BIO_NAVJITH,
+    topic: "AI, Robotics & the Green Future",
+    topicDescription: "CEO of AM Green — building a low-carbon aluminium smelter and 2GW of AI / Green Data Centre compute. 37 years across Power, Infrastructure and Marine at Rolls-Royce, GE, Wartsila and more; Harvard SELP 2025." },
 ];
 
 (async () => {
@@ -77,14 +118,19 @@ const GRADE_11_12 = [
   console.log(`speakers: ${Object.keys(speakerIds).length} unique`);
 
   // 3. Upsert talk_sessions
+  // Business key: (edition_label, target_class, session_date) — same edition on
+  // the same date for the same class = same session.
   async function upsertSession({ title, editionLabel, targetClass, sessionDate, timeSlot, description }) {
     const [existing] = await sql`
       SELECT id FROM talk_sessions
-      WHERE title = ${title} AND edition_label = ${editionLabel} LIMIT 1`;
+      WHERE edition_label = ${editionLabel}
+        AND target_class = ${targetClass}
+        AND session_date = ${sessionDate}
+      LIMIT 1`;
     if (existing) {
       await sql`
         UPDATE talk_sessions
-        SET target_class = ${targetClass}, session_date = ${sessionDate}, time_slot = ${timeSlot}, description = ${description}, updated_at = now()
+        SET title = ${title}, time_slot = ${timeSlot}, description = ${description}, updated_at = now()
         WHERE id = ${existing.id}`;
       return existing.id;
     }
@@ -96,7 +142,7 @@ const GRADE_11_12 = [
   }
 
   const sessionA = await upsertSession({
-    title: "Role Model Talks — Grade 10",
+    title: "Role Model Talks",
     editionLabel: "July 2026",
     targetClass: "10",
     sessionDate: "2026-07-27",
@@ -104,7 +150,7 @@ const GRADE_11_12 = [
     description: "In-person at Shaheen (Lounge / Hall). 10 role-model speakers across 8 ICSE/ISC sections + 2 KL (Cambridge) sections (clubbed).",
   });
   const sessionB = await upsertSession({
-    title: "Role Model Talks — Grade 11 & 12",
+    title: "Role Model Talks",
     editionLabel: "July 2026",
     targetClass: "11_12",
     sessionDate: "2026-07-28",
