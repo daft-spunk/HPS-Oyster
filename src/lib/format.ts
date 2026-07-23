@@ -1,12 +1,19 @@
-export type TargetClass = "9" | "10" | "9_10";
+export type TargetClass = "9" | "10" | "9_10" | "11_12";
 
 export function formatTargetClass(c: TargetClass): string {
   if (c === "9_10") return "Class 9 & 10";
+  if (c === "11_12") return "Class 11 & 12";
   return `Class ${c}`;
 }
 
-export function targetClassMatches(sessionClass: TargetClass, studentClass: "9" | "10"): boolean {
-  return sessionClass === studentClass || sessionClass === "9_10";
+export function targetClassMatches(
+  sessionClass: TargetClass,
+  studentClass: "9" | "10" | "11" | "12"
+): boolean {
+  if (sessionClass === studentClass) return true;
+  if (sessionClass === "9_10") return studentClass === "9" || studentClass === "10";
+  if (sessionClass === "11_12") return studentClass === "11" || studentClass === "12";
+  return false;
 }
 
 // ─── Datetime helpers for admin <input type="datetime-local"> ──────────────
