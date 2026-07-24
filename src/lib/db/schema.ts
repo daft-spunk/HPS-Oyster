@@ -24,7 +24,7 @@ export const speakers = pgTable("speakers", {
   batchYear: text("batch_year"),
   photoUrl: text("photo_url"),
   linkedinUrl: text("linkedin_url"),
-  defaultSlotLimit: integer("default_slot_limit").notNull().default(30),
+  defaultSlotLimit: integer("default_slot_limit").notNull().default(35),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -77,7 +77,7 @@ export const sessionSpeakers = pgTable(
     topic: text("topic").notNull(),
     topicDescription: text("topic_description"),
     venue: text("venue"),
-    slotLimit: integer("slot_limit").notNull().default(30),
+    slotLimit: integer("slot_limit").notNull().default(35),
     displayOrder: integer("display_order").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -104,7 +104,7 @@ export const talkRegistrations = pgTable(
     whyAttend: text("why_attend").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [unique("unique_talk_reg").on(table.sessionId, table.rollNumber)]
+  (table) => [unique("unique_talk_reg").on(table.sessionId, table.classSection, table.rollNumber)]
 );
 
 // ─────────────────────────────────────────────────────────

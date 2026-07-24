@@ -72,9 +72,6 @@ const GRADE_11_12 = [
   { name: "Harsha Tipireneni",
     topic: "What is Entrepreneurship — Really?",
     topicDescription: TD_HARSHA },
-  { name: "M. M. Pallam Raju",
-    topic: "A Career in Public Service",
-    topicDescription: TD_MMP_RAJU },
   { name: "Navjith Gill", bio: BIO_NAVJITH,
     topic: "AI, Robotics & the Green Future",
     topicDescription: "CEO of AM Green — building a low-carbon aluminium smelter and 2GW of AI / Green Data Centre compute. 37 years across Power, Infrastructure and Marine at Rolls-Royce, GE, Wartsila and more; Harvard SELP 2025." },
@@ -147,7 +144,7 @@ const GRADE_11_12 = [
     targetClass: "10",
     sessionDate: "2026-07-27",
     timeSlot: "2:45 PM – 3:45 PM",
-    description: "In-person at Shaheen (Lounge / Hall). 10 role-model speakers across 8 ICSE/ISC sections + 2 KL (Cambridge) sections (clubbed).",
+    description: "",
   });
   const sessionB = await upsertSession({
     title: "Role Model Talks",
@@ -155,7 +152,7 @@ const GRADE_11_12 = [
     targetClass: "11_12",
     sessionDate: "2026-07-28",
     timeSlot: "8:15 AM – 9:15 AM",
-    description: "In-person at Shaheen (Lounge / Hall). 8 role-model speakers across 5 ICSE/ISC sections + 2 KL (Cambridge) sections (clubbed).",
+    description: "",
   });
   console.log("session A (Gr 10):", sessionA);
   console.log("session B (Gr 11-12):", sessionB);
@@ -182,8 +179,8 @@ const GRADE_11_12 = [
   // Slot limits: sheet says 50 seats for Gr10 (10 speakers → ~50 each? no — 50 total room capacity).
   // Assume each speaker meets one section of ~35, and KL-clubbed speaker gets ~50.
   // Simpler: default 50 for everyone; admin can tune.
-  const G10_SLOT = 50;
-  const G11_SLOT = 60;
+  const G10_SLOT = 35;
+  const G11_SLOT = 35;
 
   let order = 0;
   for (const s of GRADE_10) {
