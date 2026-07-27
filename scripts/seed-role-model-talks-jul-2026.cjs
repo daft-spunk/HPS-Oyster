@@ -22,7 +22,6 @@ const TD_SISTLA = "Introducing students to media — the business, finance and l
 
 // ─── Grade 10 — 27 July 2026, 2:45 PM – 3:45 PM, Shaheen Lounge/Hall (~50 seats) ──
 const GRADE_10 = [
-  { name: "Mohan Narayana Swamy", bio: "Role model speaker (bio to follow).", topic: "Role Model Talk" },
   { name: "Akshay Kumar Ahuja", bio: "Biotechnology.",
     topic: "Biotechnology — the road less travelled",
     topicDescription: "What challenges led me to biotechnology, and what the field looks like from the inside." },
@@ -75,6 +74,9 @@ const GRADE_11_12 = [
   { name: "Navjith Gill", bio: BIO_NAVJITH,
     topic: "AI, Robotics & the Green Future",
     topicDescription: "CEO of AM Green — building a low-carbon aluminium smelter and 2GW of AI / Green Data Centre compute. 37 years across Power, Infrastructure and Marine at Rolls-Royce, GE, Wartsila and more; Harvard SELP 2025." },
+  { name: "Gopikrishna Lingala",
+    topic: "AI — How to Best Understand and Harness It",
+    topicDescription: "Making sense of AI beyond the hype — practical ways to learn it, work with it, and use it well." },
 ];
 
 (async () => {

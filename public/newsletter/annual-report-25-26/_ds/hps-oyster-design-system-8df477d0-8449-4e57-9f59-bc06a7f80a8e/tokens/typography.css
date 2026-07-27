@@ -1,0 +1,49 @@
+/* HPS Society — Typography tokens (classical / editorial) */
+
+:root {
+  /* ---- Families ---- */
+  --font-display: "Cormorant Garamond", "Cormorant", Garamond, "Times New Roman", serif;
+  --font-serif:   "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
+  --font-sans:    "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* ---- Type scale (display serif runs large & light) ---- */
+  --fs-display-xl: 92px;   /* masthead */
+  --fs-display-l:  68px;
+  --fs-display-m:  52px;
+  --fs-h1:         40px;
+  --fs-h2:         31px;
+  --fs-h3:         24px;
+  --fs-h4:         19px;
+  --fs-body-lg:    20px;
+  --fs-body:       17px;
+  --fs-body-sm:    15px;
+  --fs-caption:    13px;
+  --fs-eyebrow:    12px;   /* tracked uppercase sans / roman numerals */
+
+  /* ---- Weights ---- */
+  --fw-regular:  400;   /* @kind font */
+  --fw-medium:   500;   /* @kind font */
+  --fw-semibold: 600;   /* @kind font */
+  --fw-bold:     700;   /* @kind font */
+
+  /* ---- Line heights ---- */
+  --lh-tight:   1.05;   /* @kind font */
+  --lh-snug:    1.16;   /* @kind font */
+  --lh-heading: 1.2;    /* @kind font */
+  --lh-body:    1.62;   /* @kind font */
+  --lh-relaxed: 1.75;   /* @kind font */
+
+  /* ---- Letter spacing ---- */
+  --ls-tighter: -0.02em;  /* @kind font */
+  --ls-tight:   -0.01em;  /* @kind font */
+  --ls-normal:  0em;      /* @kind font */
+  --ls-label:   0.22em;   /* @kind font */  /* tracked uppercase labels & roman numerals */
+  --ls-wide:    0.08em;   /* @kind font */
+
+  /* ---- Semantic roles ---- */
+  --role-display-font:   var(--font-display);
+  --role-display-weight: var(--fw-semibold);
+  --role-heading-font:   var(--font-display);
+  --role-body-font:      var(--font-serif);
+  --role-label-font:     var(--font-sans);
+}

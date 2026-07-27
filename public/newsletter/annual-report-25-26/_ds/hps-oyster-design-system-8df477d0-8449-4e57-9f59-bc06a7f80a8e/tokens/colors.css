@@ -1,0 +1,93 @@
+/* The Hyderabad Public School Society — Color tokens
+   Sampled from the crest: a slate-navy roundel, a gold soaring eagle and
+   stars, white lettering. Navy + gold + ivory parchment, heraldic restraint.
+   Motto on the crest: "Be Vigilant" · Society purpose: Soar · Lead · Serve. */
+
+:root {
+  /* ---- Heritage Blue (the crest roundel — primary) ---- */
+  --heritage-50:  #EEF1F6;
+  --heritage-100: #D7DEEA;
+  --heritage-200: #B0BDD2;
+  --heritage-300: #8294B5;
+  --heritage-400: #556C95;
+  --heritage-500: #3C5380;
+  --heritage-600: #2D4168;   /* crest blue — primary */
+  --heritage-700: #233452;
+  --heritage-800: #1A2840;
+  --heritage-900: #121C2E;   /* midnight — dark sections */
+  --heritage-950: #0C131F;
+
+  /* ---- Gold (the eagle, stars, "SOCIETY" — accent) ---- */
+  --gold-100: #F4EBCF;
+  --gold-200: #EAD9A8;
+  --gold-300: #DCC077;
+  --gold-400: #CDA94E;
+  --gold-500: #C29A45;   /* crest gold — accent */
+  --gold-600: #A07C30;
+  --gold-700: #7A5E21;
+  --gold-800: #5A4517;
+
+  /* ---- Garnet (optional ceremonial ribbon accent; use sparingly) ---- */
+  --garnet-500: #7B2D38;
+  --garnet-700: #58202A;
+
+  /* ---- Parchment / Ivory / Stone (warm neutral paper) ---- */
+  --paper-50:  #FAF7F0;   /* page background */
+  --paper-100: #F3EEE2;
+  --stone-200: #E7DFCD;
+  --stone-300: #D4C9B2;
+  --stone-400: #B3A98E;
+
+  /* ---- Ink (warm navy-black text ramp) ---- */
+  --ink-900: #1C2230;   /* primary text */
+  --ink-700: #36404F;
+  --ink-500: #5E6878;   /* muted text */
+  --ink-400: #8A929E;
+  --ink-300: #B7BEC8;
+  --ink-200: #DCE0E6;
+  --ink-100: #ECEEF2;
+  --white:   #FFFFFF;
+
+  /* ---- Semantic / status (muted, heritage-appropriate) ---- */
+  --success-500: #3E7D54;
+  --success-50:  #E8F1EB;
+  --warning-500: #B8862E;
+  --warning-50:  #F8EFD9;
+  --danger-500:  #9E3328;
+  --danger-50:   #F6E6E2;
+  --info-500:    #3C5380;
+  --info-50:     #EEF1F6;
+
+  /* ================= Semantic aliases ================= */
+  --brand:            var(--heritage-600);
+  --brand-strong:     var(--heritage-700);
+  --brand-deep:       var(--heritage-900);
+  --brand-soft:       var(--heritage-50);
+  --brand-contrast:   var(--white);
+
+  --accent:           var(--gold-500);
+  --accent-strong:    var(--gold-600);
+  --accent-soft:      var(--gold-100);
+
+  --bg-page:          var(--paper-50);
+  --bg-subtle:        var(--paper-100);
+  --bg-stone:         var(--stone-200);
+  --surface-card:     var(--white);
+  --surface-deep:     var(--heritage-900);
+  --surface-heritage: var(--heritage-600);
+
+  --text-strong:      var(--ink-900);
+  --text-body:        var(--ink-700);
+  --text-muted:       var(--ink-500);
+  --text-on-dark:     #EDEFF4;
+  --text-on-dark-mut: #A7B0C0;
+  --text-on-heritage: var(--white);
+  --text-gold:        var(--gold-600);
+
+  --border-subtle:    var(--stone-200);
+  --border-default:   var(--stone-300);
+  --border-strong:    var(--ink-400);
+  --rule-gold:        var(--gold-500);
+
+  --ring:             color-mix(in oklab, var(--heritage-500) 55%, transparent);
+}

@@ -1,0 +1,8 @@
+/* HPS Society — Webfonts (classical / heritage)
+   NOTE: Close Google Fonts substitutes (exact institutional fonts not provided):
+   - Cormorant Garamond → high-contrast display serif for the masthead & headings
+   - EB Garamond        → classic old-style body serif for prose
+   - Archivo            → quiet grotesque for nav, labels, buttons, captions
+   Flagged to the user; swap for licensed brand fonts if/when provided. */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Archivo:wght@400;500;600;700&display=swap');
