@@ -60,7 +60,7 @@
   <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center">
     <span style="display:inline-flex;align-items:center;gap:.85em;font-family:var(--font-sans);font-size:12px;letter-spacing:.28em;text-transform:uppercase;font-weight:600;color:var(--gold-300)"><span style="width:26px;height:1px;background:currentColor;opacity:.6"></span>Annual Progress Report<span style="width:26px;height:1px;background:currentColor;opacity:.6"></span></span>
     <div style="margin-top:22px;font-family:var(--font-display);font-weight:600;font-size:76px;line-height:1;color:#fff">Progress Report</div>
-    <div style="margin-top:8px;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:34px;color:var(--gold-300)">Academic Year 2025–26</div>
+    <div style="margin-top:8px;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:34px;color:var(--gold-300)">Academic Year 2025–26<span style="color:var(--gold-500)">*</span></div>
     <div style="display:flex;justify-content:center;margin:26px 0"><span style="display:inline-flex;align-items:center;gap:14px;width:230px"><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span><span style="width:7px;height:7px;transform:rotate(45deg);background:var(--gold-400)"></span><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span></span></div>
     <div style="font-family:var(--font-serif);font-size:20px;font-style:italic;color:#A7B0C0">Shadow · Discover · Connect</div>
   </div>
@@ -108,14 +108,14 @@
 </section>
 
 <!-- ============================ YEAR AT A GLANCE ============================ -->
-<section class="sheet" data-tone="navy" data-screen-label="Year at a Glance" style="background:linear-gradient(160deg,#1A2840,#0C131F 75%);color:#EDEFF4;padding:18mm;display:flex;flex-direction:column;gap:18px">
-  <div style="text-align:center">
+<section class="sheet" data-tone="navy" data-screen-label="Year at a Glance" style="background:linear-gradient(160deg,#1A2840,#0C131F 75%);color:#EDEFF4;padding:18mm;display:flex;flex-direction:column;gap:0">
+  <div style="text-align:center;margin-bottom:22px">
     <span style="display:inline-flex;align-items:center;gap:.7em;font-family:var(--font-sans);font-size:12px;letter-spacing:.24em;color:var(--gold-300)"><span style="width:22px;height:1px;background:currentColor;opacity:.7"></span>THE YEAR AT A GLANCE<span style="width:22px;height:1px;background:currentColor;opacity:.7"></span></span>
     <h2 style="font-family:var(--font-display);font-weight:600;font-size:46px;line-height:1.1;color:#fff;margin:14px 0 0">2025–26 in Numbers</h2>
   </div>
 
   <sc-if value="{{ showPhotos }}" hint-placeholder-val="{{ true }}">
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px">
     <image-slot id="num-1" placeholder="Photo" shape="rounded" radius="4" style="display:block;width:100%;height:40mm;border:1px solid rgba(220,192,119,.35)"></image-slot>
     <image-slot id="num-2" placeholder="Photo" shape="rounded" radius="4" style="display:block;width:100%;height:40mm;border:1px solid rgba(220,192,119,.35)"></image-slot>
     <image-slot id="num-3" placeholder="Photo" shape="rounded" radius="4" style="display:block;width:100%;height:40mm;border:1px solid rgba(220,192,119,.35)"></image-slot>
@@ -124,7 +124,7 @@
   </sc-if>
 
   <div>
-    <div style="font-family:var(--font-sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-500);text-align:center;margin:0 0 14px">Direct Student Impact</div>
+    <div style="font-family:var(--font-sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-500);text-align:center;margin:0 0 4px">Direct Student Impact</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px 24px;text-align:center">
       <div><div style="font-family:var(--font-display);font-weight:600;font-size:48px;line-height:1;color:var(--gold-300)">500</div><div style="font-family:var(--font-sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#A7B0C0;margin-top:8px">One-day internships</div></div>
       <div><div style="font-family:var(--font-display);font-weight:600;font-size:48px;line-height:1;color:var(--gold-300)">20</div><div style="font-family:var(--font-sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#A7B0C0;margin-top:8px">One-week internships</div></div>
@@ -133,10 +133,10 @@
     </div>
   </div>
 
-  <div style="display:flex;justify-content:center"><span style="display:inline-flex;align-items:center;gap:12px;width:160px"><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span><span style="width:5px;height:5px;transform:rotate(45deg);background:var(--gold-400)"></span><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span></span></div>
+  <div style="display:flex;justify-content:center;margin:22px 0"><span style="display:inline-flex;align-items:center;gap:12px;width:160px"><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span><span style="width:5px;height:5px;transform:rotate(45deg);background:var(--gold-400)"></span><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span></span></div>
 
   <div>
-    <div style="font-family:var(--font-sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-500);text-align:center;margin:0 0 14px">Contributors in Kind</div>
+    <div style="font-family:var(--font-sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-500);text-align:center;margin:0 0 4px">Contributors in Kind</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px 30px;text-align:center">
       <div><div style="font-family:var(--font-display);font-weight:600;font-size:48px;line-height:1;color:var(--gold-300)">25</div><div style="font-family:var(--font-sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#A7B0C0;margin-top:8px">Role-model speakers</div></div>
       <div><div style="font-family:var(--font-display);font-weight:600;font-size:48px;line-height:1;color:var(--gold-300)">30</div><div style="font-family:var(--font-sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#A7B0C0;margin-top:8px">Mentor organisations</div></div>
@@ -144,10 +144,10 @@
     </div>
   </div>
 
-  <div style="display:flex;justify-content:center"><span style="display:inline-flex;align-items:center;gap:12px;width:160px"><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span><span style="width:5px;height:5px;transform:rotate(45deg);background:var(--gold-400)"></span><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span></span></div>
+  <div style="display:flex;justify-content:center;margin:22px 0"><span style="display:inline-flex;align-items:center;gap:12px;width:160px"><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span><span style="width:5px;height:5px;transform:rotate(45deg);background:var(--gold-400)"></span><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold-400),transparent)"></span></span></div>
 
-  <div>
-    <div style="font-family:var(--font-sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-500);text-align:center;margin:0 0 14px">Financial Contribution</div>
+  <div style="margin-bottom:32px">
+    <div style="font-family:var(--font-sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-500);text-align:center;margin:0 0 6px">Financial Contribution</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:520px;margin:0 auto;width:100%">
       <div style="text-align:center"><div style="font-family:var(--font-display);font-weight:600;font-size:40px;color:#fff">₹43.18L</div><div style="font-family:var(--font-sans);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#A7B0C0;margin-top:8px">Raised to date</div></div>
       <div style="text-align:center"><div style="font-family:var(--font-display);font-weight:600;font-size:40px;color:#fff">₹10 Cr</div><div style="font-family:var(--font-sans);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#A7B0C0;margin-top:8px">Endowment target</div></div>
