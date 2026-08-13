@@ -32,12 +32,20 @@ export default async function TalkSessionDetail({
         backHref="/admin/talk-sessions"
         backLabel="Back to Talk Sessions"
         action={
-          <Link
-            href={`/admin/talk-sessions/${id}/registrations`}
-            className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
-          >
-            View Registrations
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href={`/admin/talk-sessions/${id}/edit`}
+              className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+            >
+              Edit session
+            </Link>
+            <Link
+              href={`/admin/talk-sessions/${id}/registrations`}
+              className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+            >
+              View Registrations
+            </Link>
+          </div>
         }
       />
 
