@@ -133,7 +133,8 @@ export default async function TalksPage({
                       dateStyle: "long",
                       timeStyle: "short",
                       timeZone: "Asia/Kolkata",
-                    })}
+                    })}{" "}
+                    IST
                   </p>
                 )}
               </div>

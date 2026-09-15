@@ -58,10 +58,10 @@ export default function NewTalkSessionPage() {
           <Field label="Time Slot" name="timeSlot" placeholder="2:00 PM – 3:00 PM" />
         </div>
         <Field
-          label="Registration Deadline"
+          label="Registration Deadline (IST)"
           name="regDeadline"
           type="datetime-local"
-          helpText="Registration auto-closes after this time"
+          helpText="24-hour Indian Standard Time. Registration auto-closes after this. Tip: 23:59 = 11:59 PM (end of day), 12:00 = noon."
         />
 
         {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
