@@ -9,6 +9,9 @@ import { InternshipDetails } from "./InternshipDetails";
 import { PublicNavbar } from "@/components/PublicNavbar";
 import { formatTargetClass, isDateOpen, anyDateOpen } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function InternshipsPage({
   searchParams,
 }: {

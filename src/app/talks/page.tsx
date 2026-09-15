@@ -1,6 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getActiveTalkSessions, getSessionWithSpeakers } from "@/lib/actions/talks";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { TalkRegistrationForm } from "./TalkRegistrationForm";
 import { SpeakerBio } from "./SpeakerBio";
 import { PublicNavbar } from "@/components/PublicNavbar";
