@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { registerForInternship } from "@/lib/actions/internships";
 import { ValidatedField, ValidatedTextarea } from "@/components/ValidatedInput";
+import { HoneypotFields } from "@/components/HoneypotFields";
 
 interface Company {
   sessionCompanyId: string;
@@ -60,6 +61,7 @@ export function InternshipRegistrationForm({
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="sessionId" value={sessionId} />
+      <HoneypotFields />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ValidatedField label="Student Name" name="studentName" required minLength={2} />

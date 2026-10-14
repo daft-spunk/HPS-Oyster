@@ -17,6 +17,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { istLocalInputToUtc } from "@/lib/format";
+import { detectBotSubmission } from "@/lib/anti-bot";
 
 // ─── PUBLIC ─────────────────────────────────────────────
 
@@ -71,6 +72,14 @@ export async function registerForTalk(
   _prev: { success?: boolean; error?: string } | null,
   formData: FormData
 ) {
+  // Silent-drop bot submissions. Returning success keeps attackers from
+  // learning the honeypot exists; nothing is written to the DB.
+  const bot = detectBotSubmission(formData);
+  if (!bot.ok) {
+    console.warn(`[talks] dropped suspected bot submission (${bot.reason})`);
+    return { success: true as const };
+  }
+
   const parsed = talkRegistrationSchema.safeParse(
     Object.fromEntries(formData.entries())
   );
