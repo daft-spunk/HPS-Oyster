@@ -164,10 +164,24 @@ export default async function HomePage() {
               <li>11 career streams explored</li>
             </ul>
             <div className="flex flex-wrap gap-3">
-              <span className="inline-block px-5 py-2.5 bg-[#BD974A] text-white rounded-lg font-medium">
-                View first year report
-              </span>
+              <a
+                href="/newsletter/annual-report-25-26/"
+                className="inline-block px-5 py-2.5 bg-[#BD974A] hover:bg-[#a4843d] text-white rounded-lg font-medium transition"
+              >
+                View Annual Report
+              </a>
+              <a
+                href="https://www.hpssoaringeagles.org/begumpet/endowment/world_is_my_oyster"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-5 py-2.5 bg-white border-2 border-[#BD974A] text-[#8e6f31] hover:bg-[#BD974A] hover:text-white rounded-lg font-bold transition"
+              >
+                Contribute to the Endowment →
+              </a>
             </div>
+            <p className="mt-3 text-sm text-gray-600 italic">
+              Help us grow next year&apos;s impact — every contribution funds another student&apos;s first step into the world of work.
+            </p>
           </div>
           <HighlightsCarousel />
         </div>
@@ -264,14 +278,24 @@ export default async function HomePage() {
           <p className="font-bold mb-6">
             Upcoming Details: Stay Tuned for More Information!
           </p>
-          <a
-            href="https://chat.whatsapp.com/FX98sOoqJrDGtCZ6YACZyi"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-5 py-2.5 bg-[#BD974A] hover:bg-[#a4843d] text-white rounded-lg font-medium transition"
-          >
-            Join our Oyster WhatsApp Community
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <a
+              href="https://chat.whatsapp.com/FX98sOoqJrDGtCZ6YACZyi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-5 py-2.5 bg-[#BD974A] hover:bg-[#a4843d] text-white rounded-lg font-medium transition"
+            >
+              Join our Oyster WhatsApp Community
+            </a>
+            <a
+              href="https://www.hpssoaringeagles.org/begumpet/endowment/world_is_my_oyster"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-5 py-2.5 bg-white hover:bg-[#f3e9d2] text-[#132E5A] rounded-lg font-bold border-2 border-white transition"
+            >
+              Contribute to the Endowment →
+            </a>
+          </div>
         </div>
       </section>
 
